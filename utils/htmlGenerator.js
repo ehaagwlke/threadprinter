@@ -567,3 +567,9 @@ const HtmlGenerator = {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = HtmlGenerator;
 }
+
+export function generateHTML(data) {
+  return HtmlGenerator.generate(data);
+}
+
+export default HtmlGenerator;

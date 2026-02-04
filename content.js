@@ -409,3 +409,38 @@ class ContentExtractor {
 
 // 在页面加载完成后，向 background script 报告
 console.log('ThreadPrinter: Content script loaded');
+
+// 监听来自 popup 的消息
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'extractThread') {
+    try {
+      const data = ContentExtractor.extract();
+      // 包装数据以匹配 popup.js 期望的格式
+      const wrappedData = {
+        metadata: {
+          author: {
+            name: data.author,
+            handle: data.authorHandle,
+            avatar: data.authorAvatar
+          },
+          title: data.title,
+          url: data.url,
+          publishedTime: data.publishedTime
+        },
+        stats: {
+          tweetCount: data.tweetCount,
+          imageCount: data.tweets.reduce((count, tweet) => count + (tweet.media?.images?.length || 0), 0)
+        },
+        tweets: data.tweets,
+        type: data.type,
+        siteName: data.siteName,
+        extractedAt: data.extractedAt
+      };
+      sendResponse({ success: true, data: wrappedData });
+    } catch (error) {
+      console.error('[ThreadPrinter] Extraction error:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+    return true; // 保持消息通道开放
+  }
+});

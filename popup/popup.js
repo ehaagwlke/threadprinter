@@ -58,11 +58,11 @@ function showThreadInfo(data) {
   document.getElementById('notThread').classList.add('hidden');
   document.getElementById('threadInfo').classList.remove('hidden');
   
-  // Update info
-  const authorName = data.metadata.author?.name || data.metadata.author?.handle || 'Unknown';
+  // Update info - 修正数据访问方式
+  const authorName = data.metadata?.author?.name || data.metadata?.author?.handle || data.author || 'Unknown';
   document.getElementById('authorName').textContent = authorName;
-  document.getElementById('tweetCount').textContent = data.stats.tweetCount;
-  document.getElementById('imageCount').textContent = data.stats.imageCount;
+  document.getElementById('tweetCount').textContent = data.stats?.tweetCount || data.tweetCount || 0;
+  document.getElementById('imageCount').textContent = data.stats?.imageCount || 0;
   
   // Store data for export
   currentThreadData = data;

@@ -506,3 +506,14 @@ const PdfGenerator = {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = PdfGenerator;
 }
+
+export function generatePDF(data) {
+  // PDF 生成通过预览页面的打印对话框实现
+  return PdfGenerator.generateStyledHTML(data);
+}
+
+export function generateStyledHTML(data, forPrint = false) {
+  return PdfGenerator.generateStyledHTML(data, forPrint);
+}
+
+export default PdfGenerator;

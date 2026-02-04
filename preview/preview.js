@@ -1,5 +1,9 @@
 // ThreadPrinter - Preview Page Script
 
+import { generateMarkdown } from '../utils/markdownGenerator.js';
+import { generateHTML } from '../utils/htmlGenerator.js';
+import { generateStyledHTML } from '../utils/pdfGenerator.js';
+
 let threadData = null;
 let selectedFormat = 'markdown';
 let currentTheme = 'default';
@@ -153,13 +157,18 @@ function renderTweetList() {
     item.className = `tweet-item ${tweet.selected ? 'selected' : ''}`;
     item.dataset.index = index;
     
+    // 修正数据访问：使用 tweet.text 而不是 tweet.textPlain
+    const tweetText = tweet.text || '';
+    const images = tweet.media?.images || [];
+    const videos = tweet.media?.videos || [];
+    
     item.innerHTML = `
       <input type="checkbox" ${tweet.selected ? 'checked' : ''}>
       <div class="tweet-item-content">
-        <div class="tweet-item-text">${escapeHtml(tweet.textPlain.substring(0, 120))}${tweet.textPlain.length > 120 ? '...' : ''}</div>
+        <div class="tweet-item-text">${escapeHtml(tweetText.substring(0, 120))}${tweetText.length > 120 ? '...' : ''}</div>
         <div class="tweet-item-meta">
-          ${tweet.images.length > 0 ? `📷 ${tweet.images.length} ` : ''}
-          ${tweet.videos.length > 0 ? `🎥 ${tweet.videos.length} ` : ''}
+          ${images.length > 0 ? `📷 ${images.length} ` : ''}
+          ${videos.length > 0 ? `🎥 ${videos.length} ` : ''}
           ${formatTime(tweet.timestamp)}
         </div>
       </div>

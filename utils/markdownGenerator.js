@@ -216,3 +216,9 @@ const MarkdownGenerator = {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = MarkdownGenerator;
 }
+
+export function generateMarkdown(data) {
+  return MarkdownGenerator.generate(data);
+}
+
+export default MarkdownGenerator;

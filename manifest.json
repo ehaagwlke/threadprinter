@@ -34,7 +34,11 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["preview/preview.html", "themes/*.css"],
+      "resources": [
+        "preview/preview.html",
+        "themes/*.css",
+        "utils/*.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ],
