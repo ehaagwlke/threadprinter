@@ -38,7 +38,19 @@ async function extractThread(tabId) {
   showLoading(true);
   
   try {
-    const response = await chrome.tabs.sendMessage(tabId, { action: 'extractThread' });
+    // 首先尝试检查 content script 是否已加载
+    const isLoaded = await checkContentScriptLoaded(tabId);
+    
+    if (!isLoaded) {
+      // 如果未加载，尝试动态注入
+      console.log('[ThreadPrinter] Content script not loaded, injecting...');
+      await injectContentScript(tabId);
+      // 等待一小段时间让脚本初始化
+      await sleep(500);
+    }
+    
+    // 发送提取消息
+    const response = await sendMessageWithRetry(tabId, { action: 'extractThread' }, 3);
     
     if (response.success) {
       currentThreadData = response.data;
@@ -52,6 +64,51 @@ async function extractThread(tabId) {
   } finally {
     showLoading(false);
   }
+}
+
+// 检查 content script 是否已加载
+async function checkContentScriptLoaded(tabId) {
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+    return response && response.pong === true;
+  } catch (error) {
+    return false;
+  }
+}
+
+// 动态注入 content script
+async function injectContentScript(tabId) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      files: ['lib/Readability.js', 'content.js']
+    });
+    console.log('[ThreadPrinter] Content script injected successfully');
+  } catch (error) {
+    console.error('[ThreadPrinter] Failed to inject content script:', error);
+    throw error;
+  }
+}
+
+// 带重试的消息发送
+async function sendMessageWithRetry(tabId, message, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await chrome.tabs.sendMessage(tabId, message);
+      return response;
+    } catch (error) {
+      if (i === maxRetries - 1) {
+        throw error;
+      }
+      console.log(`[ThreadPrinter] Retry ${i + 1}/${maxRetries}...`);
+      await sleep(300);
+    }
+  }
+}
+
+// 辅助函数：延迟
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function showThreadInfo(data) {

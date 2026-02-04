@@ -412,6 +412,12 @@ console.log('ThreadPrinter: Content script loaded');
 
 // 监听来自 popup 的消息
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // 响应 ping 检查
+  if (request.action === 'ping') {
+    sendResponse({ pong: true });
+    return true;
+  }
+  
   if (request.action === 'extractThread') {
     try {
       const data = ContentExtractor.extract();

@@ -29,7 +29,8 @@
     {
       "matches": ["*://twitter.com/*", "*://x.com/*"],
       "js": ["lib/Readability.js", "content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_start",
+      "all_frames": false
     }
   ],
   "web_accessible_resources": [
