@@ -1,0 +1,62 @@
+// ThreadPrinter - Dark Theme
+// Dark mode for low-light reading
+
+.preview-content {
+  font-size: var(--preview-font-size);
+  line-height: var(--preview-line-height);
+  color: #e7e9ea;
+  background: #15202b;
+  padding: 60px !important;
+}
+
+.preview-content .thread-header {
+  border-bottom: 2px solid #38444d;
+  padding-bottom: 30px;
+  margin-bottom: 40px;
+}
+
+.preview-content .thread-title {
+  color: #ffffff;
+}
+
+.preview-content .tweet {
+  border-bottom: 1px solid #38444d;
+  padding-bottom: 30px;
+}
+
+.preview-content .tweet-text {
+  color: #e7e9ea;
+}
+
+.preview-content .tweet-text a {
+  color: #1d9bf0;
+}
+
+.preview-content .tweet-author-name {
+  color: #ffffff;
+}
+
+.preview-content .tweet-author-handle,
+.preview-content .tweet-time {
+  color: #8899a6;
+}
+
+.preview-content .tweet-stats {
+  color: #8899a6;
+}
+
+.preview-content pre {
+  background: #192734;
+  padding: 20px;
+  border-radius: 12px;
+  color: #e7e9ea;
+}
+
+.preview-content code {
+  color: #e7e9ea;
+}
+
+.preview-content .thread-footer {
+  border-top: 1px solid #38444d;
+  color: #8899a6;
+}

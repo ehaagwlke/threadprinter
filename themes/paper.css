@@ -1,0 +1,48 @@
+// ThreadPrinter - Paper Theme
+// Print-friendly, serif typography for reading
+
+.preview-content {
+  font-size: var(--preview-font-size);
+  line-height: var(--preview-line-height);
+  color: #2c2c2c;
+  background: #fffef8;
+  font-family: Georgia, "Times New Roman", serif;
+  padding: 60px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.preview-content .thread-header {
+  border-bottom: 2px solid #d4c5b5;
+  padding-bottom: 30px;
+  margin-bottom: 40px;
+}
+
+.preview-content .thread-title {
+  font-family: Georgia, serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #1a1a1a;
+}
+
+.preview-content .tweet {
+  border-bottom: 1px solid #e8e0d5;
+  padding-bottom: 30px;
+}
+
+.preview-content .tweet-text {
+  font-family: Georgia, serif;
+  font-size: 17px;
+  line-height: 1.8;
+}
+
+.preview-content .tweet-avatar {
+  border: 2px solid #d4c5b5;
+}
+
+.preview-content pre {
+  background: #f9f7f2;
+  padding: 20px;
+  border-radius: 4px;
+  border: 1px solid #e8e0d5;
+  font-family: "Courier New", monospace;
+}

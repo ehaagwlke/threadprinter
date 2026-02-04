@@ -1,0 +1,260 @@
+:root {
+  --primary: #1d9bf0;
+  --primary-hover: #1a8cd8;
+  --bg: #ffffff;
+  --bg-secondary: #f7f9f9;
+  --text: #0f1419;
+  --text-secondary: #536471;
+  --border: #eff3f4;
+  --error: #f4212e;
+  --success: #00ba7c;
+  --radius: 12px;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  width: 340px;
+  min-height: 400px;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+}
+
+/* Header */
+.header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.logo svg {
+  color: var(--primary);
+}
+
+/* Loading */
+.loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading p {
+  color: var(--text-secondary);
+}
+
+/* Error */
+.error {
+  padding: 20px;
+  margin: 16px;
+  background: #ffebee;
+  border-radius: var(--radius);
+  color: var(--error);
+  text-align: center;
+}
+
+/* Content */
+.content {
+  flex: 1;
+  padding: 16px;
+}
+
+.not-thread {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.not-thread .icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.not-thread p {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.not-thread .hint {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* Thread Info */
+.thread-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.info-row .label {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.info-row .value {
+  font-weight: 600;
+}
+
+/* Export Options */
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.format-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.format-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.format-btn:hover {
+  border-color: var(--primary);
+  background: var(--bg-secondary);
+}
+
+.format-btn.active {
+  border-color: var(--primary);
+  background: rgba(29, 155, 240, 0.1);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.format-btn .icon {
+  font-size: 20px;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--border);
+}
+
+/* Footer */
+.footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.footer a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.footer .separator {
+  color: var(--border);
+}
+
+/* Utilities */
+.hidden {
+  display: none !important;
+}

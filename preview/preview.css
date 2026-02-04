@@ -1,0 +1,587 @@
+/* ThreadPrinter - Preview 样式 */
+
+:root {
+  --preview-font-size: 16px;
+  --preview-line-height: 1.6;
+  --primary-color: #1d9bf0;
+  --bg-color: #f7f9f9;
+  --sidebar-width: 240px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg-color);
+  color: #0f1419;
+  line-height: var(--preview-line-height);
+}
+
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* 工具栏 */
+.toolbar {
+  width: var(--sidebar-width);
+  background: #fff;
+  border-right: 1px solid #eff3f4;
+  padding: 20px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.toolbar-section {
+  margin-bottom: 24px;
+}
+
+.toolbar-section h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #536471;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 主题选项 */
+.theme-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.theme-radio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.theme-radio:hover {
+  background: #f7f9f9;
+}
+
+.theme-radio input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary-color);
+}
+
+.theme-radio span {
+  font-size: 14px;
+}
+
+/* 控制组 */
+.control-group {
+  margin-bottom: 16px;
+}
+
+.control-group label {
+  display: block;
+  font-size: 13px;
+  color: #536471;
+  margin-bottom: 6px;
+}
+
+.control-group input[type="range"] {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: #e1e8ed;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.control-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* 导出按钮 */
+.export-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f1419;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.export-btn:hover {
+  background: #f7f9f9;
+  border-color: var(--primary-color);
+}
+
+.export-btn svg {
+  color: #536471;
+}
+
+/* 选择按钮 */
+.btn-select-all,
+.btn-deselect-all {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.btn-select-all:hover {
+  background: #e5f8f3;
+  border-color: #00ba7c;
+  color: #00ba7c;
+}
+
+.btn-deselect-all:hover {
+  background: #ffedef;
+  border-color: #f4212e;
+  color: #f4212e;
+}
+
+/* 预览区域 */
+.preview-area {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  padding: 40px;
+}
+
+.preview-header {
+  max-width: 680px;
+  margin: 0 auto 32px;
+  text-align: center;
+}
+
+.preview-header h1 {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.preview-meta {
+  font-size: 13px;
+  color: #536471;
+}
+
+.content-wrapper {
+  max-width: 680px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* 线程头部 */
+.thread-header {
+  padding: 24px;
+  border-bottom: 1px solid #eff3f4;
+  background: linear-gradient(135deg, #f7f9f9 0%, #fff 100%);
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.author-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.author-details {
+  flex: 1;
+}
+
+.author-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f1419;
+}
+
+.author-handle {
+  font-size: 15px;
+  color: #536471;
+}
+
+.thread-date {
+  font-size: 13px;
+  color: #536471;
+  margin-top: 8px;
+}
+
+/* 推文列表 */
+.tweets-list {
+  font-size: var(--preview-font-size);
+}
+
+.tweet {
+  padding: 20px 24px;
+  border-bottom: 1px solid #eff3f4;
+  transition: opacity 0.2s, background 0.2s;
+}
+
+.tweet:last-child {
+  border-bottom: none;
+}
+
+.tweet.deleted {
+  opacity: 0.4;
+  background: #f7f9f9;
+}
+
+.tweet-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.tweet-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #536471;
+  user-select: none;
+}
+
+.tweet-select input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary-color);
+}
+
+.tweet-meta {
+  flex: 1;
+}
+
+.tweet-meta time {
+  font-size: 13px;
+  color: #536471;
+}
+
+.tweet-delete-btn {
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: #536471;
+  border-radius: 50%;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tweet-delete-btn:hover {
+  background: #ffedef;
+  color: #f4212e;
+}
+
+.tweet.deleted .tweet-delete-btn {
+  color: #00ba7c;
+}
+
+.tweet.deleted .tweet-delete-btn:hover {
+  background: #e5f8f3;
+}
+
+/* 推文内容 */
+.tweet-content {
+  line-height: var(--preview-line-height);
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.tweet-content a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.tweet-content a:hover {
+  text-decoration: underline;
+}
+
+/* 媒体内容 */
+.tweet-media {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.media-item {
+  margin: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.media-item img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.media-item figcaption {
+  font-size: 12px;
+  color: #536471;
+  padding: 8px 12px;
+  background: #f7f9f9;
+}
+
+/* 视频 */
+.tweet-video {
+  position: relative;
+  margin-top: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+}
+
+.tweet-video img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.video-overlay span {
+  padding: 12px 24px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border-radius: 24px;
+  font-size: 14px;
+}
+
+/* 卡片 */
+.tweet-card {
+  display: block;
+  margin-top: 12px;
+  border: 1px solid #e1e8ed;
+  border-radius: 12px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.2s;
+}
+
+.tweet-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.tweet-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+.card-content {
+  padding: 12px 16px;
+}
+
+.card-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-url {
+  font-size: 13px;
+  color: #536471;
+}
+
+/* 链接 */
+.tweet-links {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tweet-links a {
+  font-size: 13px;
+  color: var(--primary-color);
+  text-decoration: none;
+  background: #e8f5fd;
+  padding: 4px 10px;
+  border-radius: 12px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tweet-links a:hover {
+  background: #d7effc;
+}
+
+/* 线程页脚 */
+.thread-footer {
+  padding: 16px 24px;
+  background: #f7f9f9;
+  font-size: 13px;
+  color: #536471;
+  text-align: center;
+}
+
+/* 通用内容 */
+.generic-content {
+  padding: 32px;
+}
+
+.generic-content h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  line-height: 1.3;
+}
+
+.generic-content .byline {
+  font-size: 15px;
+  color: #536471;
+  margin-bottom: 8px;
+}
+
+.generic-content .publish-date {
+  font-size: 13px;
+  color: #536471;
+  margin-bottom: 24px;
+}
+
+.content-body {
+  font-size: var(--preview-font-size);
+  line-height: var(--preview-line-height);
+}
+
+.content-body p {
+  margin-bottom: 16px;
+}
+
+.content-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+
+/* 空消息 */
+.empty-message,
+.error-message {
+  text-align: center;
+  padding: 60px 20px;
+  color: #536471;
+}
+
+.error-message {
+  color: #f4212e;
+}
+
+/* 加载遮罩 */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loading-overlay p {
+  margin-top: 16px;
+  color: #536471;
+  font-size: 14px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e1e8ed;
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .toolbar {
+    width: 100%;
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid #eff3f4;
+  }
+
+  .preview-area {
+    margin-left: 0;
+    padding: 20px;
+  }
+
+  .app {
+    flex-direction: column;
+  }
+}

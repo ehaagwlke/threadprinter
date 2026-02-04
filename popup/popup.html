@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThreadPrinter</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+          <line x1="7" y1="8" x2="17" y2="8" stroke="currentColor" stroke-width="2"/>
+          <line x1="7" y1="12" x2="17" y2="12" stroke="currentColor" stroke-width="2"/>
+          <line x1="7" y1="16" x2="13" y2="16" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <span>ThreadPrinter</span>
+      </div>
+    </header>
+
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Extracting thread...</p>
+    </div>
+
+    <div id="error" class="error hidden">
+      <p id="errorMessage"></p>
+    </div>
+
+    <div id="content" class="content">
+      <div id="notThread" class="not-thread">
+        <div class="icon">☹️</div>
+        <p>Navigate to an X/Twitter thread to extract it</p>
+        <p class="hint">Open a tweet with replies to get started</p>
+      </div>
+
+      <div id="threadInfo" class="thread-info hidden">
+        <div class="info-row">
+          <span class="label">Author:</span>
+          <span id="authorName" class="value">-</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Tweets:</span>
+          <span id="tweetCount" class="value">-</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Images:</span>
+          <span id="imageCount" class="value">-</span>
+        </div>
+
+        <div class="export-options">
+          <p class="section-title">Export Format:</p>
+          <div class="format-buttons">
+            <button class="format-btn active" data-format="markdown">
+              <span class="icon">📝</span>
+              Markdown
+            </button>
+            <button class="format-btn" data-format="html">
+              <span class="icon">🌐</span>
+              HTML
+            </button>
+            <button class="format-btn" data-format="pdf">
+              <span class="icon">📄</span>
+              PDF
+            </button>
+            <button class="format-btn" data-format="png">
+              <span class="icon">🖼️</span>
+              PNG
+            </button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="previewBtn" class="btn btn-primary">
+            <span>👁️</span> Preview & Edit
+          </button>
+          <button id="quickExportBtn" class="btn btn-secondary">
+            <span>⬇️</span> Quick Export
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <a href="#" id="settingsLink">Settings</a>
+      <span class="separator">·</span>
+      <a href="#" id="helpLink">Help</a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
