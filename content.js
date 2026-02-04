@@ -72,9 +72,33 @@ class ContentExtractor {
    */
   static parseTweetElement(tweetEl, index) {
     try {
-      // 提取文本内容
-      const textEl = tweetEl.querySelector('[data-testid="tweetText"]');
-      const text = textEl ? textEl.innerText : '';
+      // 提取文本内容 - 支持普通推文和长文
+      let textEl = tweetEl.querySelector('[data-testid="tweetText"]');
+      
+      // 如果没有找到，尝试其他选择器（长文格式）
+      if (!textEl) {
+        textEl = tweetEl.querySelector('div[lang]');
+      }
+      if (!textEl) {
+        // 尝试找到包含文本的 div
+        const possibleTextDivs = tweetEl.querySelectorAll('div');
+        for (const div of possibleTextDivs) {
+          if (div.children.length === 0 && div.innerText.trim().length > 10) {
+            textEl = div;
+            break;
+          }
+        }
+      }
+      
+      // 获取文本，保留换行格式
+      let text = '';
+      if (textEl) {
+        // 克隆元素以便处理
+        const clone = textEl.cloneNode(true);
+        // 将 <br> 转换为换行符
+        clone.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+        text = clone.innerText || '';
+      }
       
       // 提取作者信息
       const userEl = tweetEl.querySelector('[data-testid="User-Name"]');
@@ -99,6 +123,7 @@ class ContentExtractor {
         index: index,
         id: `tweet-${index}`,
         text: text,
+        textPlain: text, // 兼容性字段
         html: textEl ? textEl.innerHTML : '',
         author: author,
         authorHandle: authorHandle,

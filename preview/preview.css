@@ -5,7 +5,8 @@
   --preview-line-height: 1.6;
   --primary-color: #1d9bf0;
   --bg-color: #f7f9f9;
-  --sidebar-width: 240px;
+  --toolbar-width: 240px;
+  --sidebar-width: 280px;
 }
 
 * {
@@ -19,6 +20,7 @@ body {
   background: var(--bg-color);
   color: #0f1419;
   line-height: var(--preview-line-height);
+  overflow-x: hidden;
 }
 
 .app {
@@ -26,9 +28,147 @@ body {
   min-height: 100vh;
 }
 
+/* 主容器 */
+.main-container {
+  display: flex;
+  margin-left: var(--toolbar-width);
+  width: calc(100% - var(--toolbar-width));
+  min-height: 100vh;
+}
+
+/* 左侧边栏 - 推文选择 */
+.sidebar {
+  width: var(--sidebar-width);
+  background: #fff;
+  border-right: 1px solid #eff3f4;
+  padding: 20px;
+  position: fixed;
+  left: var(--toolbar-width);
+  top: 0;
+  bottom: 0;
+  overflow-y: auto;
+  z-index: 90;
+}
+
+.sidebar-header {
+  margin-bottom: 16px;
+}
+
+.sidebar-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.selection-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.small-btn {
+  flex: 1;
+  padding: 6px 12px;
+  border: 1px solid #e1e8ed;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.small-btn:hover {
+  background: #f7f9f9;
+}
+
+.tweet-list {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.tweet-item {
+  padding: 12px;
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.tweet-item:hover {
+  background: #f7f9f9;
+}
+
+.tweet-item.selected {
+  border-color: var(--primary-color);
+  background: #e8f5fd;
+}
+
+.tweet-item input[type="checkbox"] {
+  margin-top: 2px;
+}
+
+.tweet-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.tweet-item-text {
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tweet-item-meta {
+  font-size: 11px;
+  color: #536471;
+}
+
+.sidebar-footer {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  padding-top: 12px;
+  border-top: 1px solid #eff3f4;
+  font-size: 13px;
+  color: #536471;
+  text-align: center;
+}
+
+/* 预览容器 */
+.preview-container {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  padding: 40px;
+  min-height: 100vh;
+  overflow-y: auto;
+}
+
+.preview-content {
+  max-width: 680px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 32px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #536471;
+}
+
 /* 工具栏 */
 .toolbar {
-  width: var(--sidebar-width);
+  width: var(--toolbar-width);
   background: #fff;
   border-right: 1px solid #eff3f4;
   padding: 20px;
@@ -181,13 +321,7 @@ body {
   color: #f4212e;
 }
 
-/* 预览区域 */
-.preview-area {
-  flex: 1;
-  margin-left: var(--sidebar-width);
-  padding: 40px;
-}
-
+/* 预览区域 - 已迁移到上面的 .preview-container */
 .preview-header {
   max-width: 680px;
   margin: 0 auto 32px;
@@ -576,12 +710,21 @@ body {
     border-bottom: 1px solid #eff3f4;
   }
 
-  .preview-area {
+  .main-container {
     margin-left: 0;
-    padding: 20px;
+    flex-direction: column;
   }
 
-  .app {
-    flex-direction: column;
+  .sidebar {
+    position: relative;
+    left: 0;
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #eff3f4;
+  }
+
+  .preview-container {
+    margin-left: 0;
+    padding: 20px;
   }
 }
