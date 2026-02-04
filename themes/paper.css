@@ -1,48 +1,86 @@
-// ThreadPrinter - Paper Theme
-// Print-friendly, serif typography for reading
+/* ThreadPrinter - 纸张主题 */
 
-.preview-content {
-  font-size: var(--preview-font-size);
-  line-height: var(--preview-line-height);
-  color: #2c2c2c;
-  background: #fffef8;
-  font-family: Georgia, "Times New Roman", serif;
-  padding: 60px !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+:root {
+  --tp-bg: #fefcf3;
+  --tp-text: #2c241b;
+  --tp-text-secondary: #6b5b4f;
+  --tp-border: #e5e0d5;
+  --tp-accent: #8b4513;
+  --tp-accent-hover: #a0522d;
+  --tp-muted: #faf8f0;
 }
 
-.preview-content .thread-header {
-  border-bottom: 2px solid #d4c5b5;
-  padding-bottom: 30px;
-  margin-bottom: 40px;
+.thread-container {
+  background: var(--tp-bg);
+  color: var(--tp-text);
+  font-family: Georgia, 'Times New Roman', serif;
 }
 
-.preview-content .thread-title {
+.thread-header {
+  background: linear-gradient(135deg, #f5f0e6 0%, var(--tp-bg) 100%);
+  border-bottom: 2px solid var(--tp-border);
+  padding: 32px;
+}
+
+.author-avatar {
+  width: 72px;
+  height: 72px;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.author-name {
+  font-size: 22px;
+  font-weight: bold;
   font-family: Georgia, serif;
-  font-weight: 700;
-  font-size: 28px;
-  color: #1a1a1a;
 }
 
-.preview-content .tweet {
-  border-bottom: 1px solid #e8e0d5;
-  padding-bottom: 30px;
+.tweet {
+  border-bottom: 1px solid var(--tp-border);
+  padding: 24px 32px;
 }
 
-.preview-content .tweet-text {
-  font-family: Georgia, serif;
+.tweet.deleted {
+  background: #f9f7f0;
+}
+
+.tweet-content {
   font-size: 17px;
   line-height: 1.8;
 }
 
-.preview-content .tweet-avatar {
-  border: 2px solid #d4c5b5;
+.tweet-content a {
+  color: var(--tp-accent);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--tp-accent);
 }
 
-.preview-content pre {
-  background: #f9f7f2;
-  padding: 20px;
+.tweet-content a:hover {
+  color: var(--tp-accent-hover);
+  border-bottom-style: solid;
+}
+
+.tweet-media img {
   border-radius: 4px;
-  border: 1px solid #e8e0d5;
-  font-family: "Courier New", monospace;
+  border: 1px solid var(--tp-border);
+}
+
+.thread-footer {
+  background: var(--tp-muted);
+  border-top: 1px solid var(--tp-border);
+  font-style: italic;
+}
+
+.tweet-links a {
+  background: #f5f0e6;
+  border: 1px solid var(--tp-border);
+  color: var(--tp-accent);
+  font-family: Georgia, serif;
+  font-size: 12px;
+}
+
+.tweet-card {
+  background: #fff;
+  border: 1px solid var(--tp-border);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }

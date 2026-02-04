@@ -1,28 +1,98 @@
-// ThreadPrinter - Default Theme
-// Clean, modern style inspired by X/Twitter
+/* ThreadPrinter - 默认主题 */
 
 :root {
-  --preview-font-size: 16px;
-  --preview-line-height: 1.6;
+  --tp-bg: #ffffff;
+  --tp-text: #0f1419;
+  --tp-text-secondary: #536471;
+  --tp-border: #eff3f4;
+  --tp-accent: #1d9bf0;
+  --tp-accent-hover: #1a8cd8;
+  --tp-muted: #f7f9f9;
 }
 
-.preview-content {
-  font-size: var(--preview-font-size);
-  line-height: var(--preview-line-height);
-  color: #0f1419;
-  background: #ffffff;
+.thread-container {
+  background: var(--tp-bg);
+  color: var(--tp-text);
 }
 
-.preview-content pre {
-  background: #f7f9f9;
-  padding: 20px;
-  border-radius: 12px;
-  overflow-x: auto;
-  font-size: 14px;
-  line-height: 1.5;
+.thread-header {
+  background: linear-gradient(135deg, var(--tp-muted) 0%, var(--tp-bg) 100%);
+  border-bottom: 1px solid var(--tp-border);
 }
 
-.preview-content code {
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-  color: #0f1419;
+.tweet {
+  border-bottom: 1px solid var(--tp-border);
+}
+
+.tweet.deleted {
+  background: var(--tp-muted);
+}
+
+.tweet-content a {
+  color: var(--tp-accent);
+}
+
+.tweet-content a:hover {
+  color: var(--tp-accent-hover);
+}
+
+.tweet-select span {
+  color: var(--tp-text-secondary);
+}
+
+.tweet-meta time {
+  color: var(--tp-text-secondary);
+}
+
+.tweet-delete-btn {
+  color: var(--tp-text-secondary);
+}
+
+.tweet-delete-btn:hover {
+  color: #f4212e;
+  background: #ffedef;
+}
+
+.thread-footer {
+  background: var(--tp-muted);
+  color: var(--tp-text-secondary);
+}
+
+.tweet-links a {
+  background: #e8f5fd;
+  color: var(--tp-accent);
+}
+
+.tweet-links a:hover {
+  background: #d7effc;
+}
+
+.tweet-card {
+  border: 1px solid var(--tp-border);
+}
+
+.tweet-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-url {
+  color: var(--tp-text-secondary);
+}
+
+.video-overlay {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.video-overlay span {
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+}
+
+.generic-content h1 {
+  color: var(--tp-text);
+}
+
+.generic-content .byline,
+.generic-content .publish-date {
+  color: var(--tp-text-secondary);
 }

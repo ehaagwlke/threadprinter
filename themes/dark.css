@@ -1,62 +1,151 @@
-// ThreadPrinter - Dark Theme
-// Dark mode for low-light reading
+/* ThreadPrinter - 深色主题 */
 
-.preview-content {
-  font-size: var(--preview-font-size);
-  line-height: var(--preview-line-height);
-  color: #e7e9ea;
-  background: #15202b;
-  padding: 60px !important;
+:root {
+  --tp-bg: #15202b;
+  --tp-text: #e7e9ea;
+  --tp-text-secondary: #71767b;
+  --tp-border: #2f3336;
+  --tp-accent: #1d9bf0;
+  --tp-accent-hover: #4dabf7;
+  --tp-muted: #1e2732;
 }
 
-.preview-content .thread-header {
-  border-bottom: 2px solid #38444d;
-  padding-bottom: 30px;
-  margin-bottom: 40px;
+.thread-container {
+  background: var(--tp-bg);
+  color: var(--tp-text);
 }
 
-.preview-content .thread-title {
-  color: #ffffff;
+.thread-header {
+  background: linear-gradient(135deg, var(--tp-muted) 0%, var(--tp-bg) 100%);
+  border-bottom: 1px solid var(--tp-border);
 }
 
-.preview-content .tweet {
-  border-bottom: 1px solid #38444d;
-  padding-bottom: 30px;
+.author-avatar {
+  border-color: var(--tp-bg);
 }
 
-.preview-content .tweet-text {
-  color: #e7e9ea;
+.author-name {
+  color: var(--tp-text);
 }
 
-.preview-content .tweet-text a {
-  color: #1d9bf0;
+.tweet {
+  border-bottom: 1px solid var(--tp-border);
 }
 
-.preview-content .tweet-author-name {
-  color: #ffffff;
+.tweet.deleted {
+  background: var(--tp-muted);
+  opacity: 0.4;
 }
 
-.preview-content .tweet-author-handle,
-.preview-content .tweet-time {
-  color: #8899a6;
+.tweet-content {
+  color: var(--tp-text);
 }
 
-.preview-content .tweet-stats {
-  color: #8899a6;
+.tweet-content a {
+  color: var(--tp-accent);
 }
 
-.preview-content pre {
-  background: #192734;
-  padding: 20px;
-  border-radius: 12px;
-  color: #e7e9ea;
+.tweet-content a:hover {
+  color: var(--tp-accent-hover);
 }
 
-.preview-content code {
-  color: #e7e9ea;
+.tweet-select span {
+  color: var(--tp-text-secondary);
 }
 
-.preview-content .thread-footer {
-  border-top: 1px solid #38444d;
-  color: #8899a6;
+.tweet-meta time {
+  color: var(--tp-text-secondary);
+}
+
+.tweet-delete-btn {
+  color: var(--tp-text-secondary);
+}
+
+.tweet-delete-btn:hover {
+  background: rgba(244, 33, 46, 0.1);
+  color: #f4212e;
+}
+
+.thread-footer {
+  background: var(--tp-muted);
+  color: var(--tp-text-secondary);
+}
+
+.tweet-links a {
+  background: rgba(29, 155, 240, 0.1);
+  color: var(--tp-accent);
+}
+
+.tweet-links a:hover {
+  background: rgba(29, 155, 240, 0.2);
+}
+
+.tweet-card {
+  background: var(--tp-muted);
+  border: 1px solid var(--tp-border);
+}
+
+.tweet-card:hover {
+  background: #263340;
+}
+
+.card-url {
+  color: var(--tp-text-secondary);
+}
+
+.media-item figcaption {
+  background: var(--tp-muted);
+  color: var(--tp-text-secondary);
+}
+
+.preview-area {
+  background: #000;
+}
+
+.content-wrapper {
+  background: var(--tp-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.toolbar {
+  background: var(--tp-muted);
+  border-right-color: var(--tp-border);
+}
+
+.toolbar-section h3 {
+  color: var(--tp-text-secondary);
+}
+
+.theme-radio:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.control-group input[type="range"] {
+  background: var(--tp-border);
+}
+
+.export-btn {
+  background: var(--tp-bg);
+  border-color: var(--tp-border);
+  color: var(--tp-text);
+}
+
+.export-btn:hover {
+  background: var(--tp-muted);
+  border-color: var(--tp-accent);
+}
+
+.btn-select-all,
+.btn-deselect-all {
+  background: var(--tp-bg);
+  border-color: var(--tp-border);
+  color: var(--tp-text);
+}
+
+.preview-header h1 {
+  color: var(--tp-text);
+}
+
+.preview-meta {
+  color: var(--tp-text-secondary);
 }
