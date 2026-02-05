@@ -27,6 +27,61 @@ class ContentExtractor {
   static isTwitter(url) {
     return /twitter\.com|x\.com/.test(url);
   }
+
+  static getCurrentStatusId() {
+    const match = window.location.pathname.match(/\/status(?:es)?\/(\d+)/);
+    return match ? match[1] : '';
+  }
+
+  static getTweetStatusId(tweetEl) {
+    if (!tweetEl) return '';
+    const links = tweetEl.querySelectorAll('a[href*="/status/"]');
+    for (const a of links) {
+      const href = a.getAttribute('href') || '';
+      const match = href.match(/\/status\/(\d+)/);
+      if (match) return match[1];
+    }
+    return '';
+  }
+
+  static getTweetElements() {
+    let tweetElements = document.querySelectorAll('article[data-testid="tweet"]');
+    if (tweetElements.length === 0) {
+      tweetElements = document.querySelectorAll('article[tabindex="0"]');
+    }
+    return tweetElements;
+  }
+
+  static findMainTweetElement() {
+    const statusId = this.getCurrentStatusId();
+    const tweetElements = this.getTweetElements();
+    if (!statusId || tweetElements.length === 0) return tweetElements[0] || null;
+
+    for (const tweetEl of tweetElements) {
+      const tweetStatusId = this.getTweetStatusId(tweetEl);
+      if (tweetStatusId && tweetStatusId === statusId) return tweetEl;
+    }
+
+    return tweetElements[0] || null;
+  }
+
+  static waitForTweetsReady({ timeoutMs = 4000, intervalMs = 120 } = {}) {
+    const start = Date.now();
+    return new Promise(resolve => {
+      const tick = () => {
+        const mainTweet = this.findMainTweetElement();
+        if (mainTweet) {
+          const text = this.extractTweetText(mainTweet);
+          if (text) return resolve(true);
+        }
+
+        if (Date.now() - start >= timeoutMs) return resolve(false);
+        setTimeout(tick, intervalMs);
+      };
+
+      tick();
+    });
+  }
   
   /**
    * 提取 X/Twitter 线程内容
@@ -55,22 +110,40 @@ class ContentExtractor {
    */
   static extractTweets() {
     const tweets = [];
-    // X/Twitter 的推文选择器 - 尝试多种可能的选择器
-    let tweetElements = document.querySelectorAll('article[data-testid="tweet"]');
-    
-    // 如果找不到，尝试备用选择器
-    if (tweetElements.length === 0) {
-      tweetElements = document.querySelectorAll('article[tabindex="0"]');
-    }
+    const tweetElements = this.getTweetElements();
+    const currentStatusId = this.getCurrentStatusId();
     
     console.log(`[ThreadPrinter] Found ${tweetElements.length} tweet elements`);
     
     tweetElements.forEach((tweetEl, index) => {
-      const tweet = this.parseTweetElement(tweetEl, index);
-      if (tweet && tweet.text) {
+      const tweet = this.parseTweetElement(tweetEl, index, currentStatusId);
+      if (tweet && (tweet.text || (tweet.media?.images?.length || 0) > 0 || (tweet.media?.videos?.length || 0) > 0)) {
         tweets.push(tweet);
       }
     });
+
+    if (currentStatusId && !tweets.some(t => t.statusId === currentStatusId)) {
+      const metaText = this.extractMainTweetTextFromMeta();
+      if (metaText) {
+        const threadInfo = this.extractThreadInfo();
+        tweets.unshift({
+          index: 0,
+          id: `tweet-${currentStatusId}`,
+          statusId: currentStatusId,
+          text: metaText,
+          textPlain: metaText,
+          html: '',
+          author: threadInfo.author,
+          authorHandle: threadInfo.authorHandle,
+          timestamp: threadInfo.publishedTime,
+          displayTime: '',
+          media: { images: [], videos: [] },
+          engagement: { replies: 0, retweets: 0, likes: 0, views: 0 },
+          links: [],
+          selected: true
+        });
+      }
+    }
     
     return tweets;
   }
@@ -78,10 +151,15 @@ class ContentExtractor {
   /**
    * 解析单个推文元素
    */
-  static parseTweetElement(tweetEl, index) {
+  static parseTweetElement(tweetEl, index, currentStatusId = '') {
     try {
       // 提取文本内容 - 支持普通推文和长文
       let text = this.extractTweetText(tweetEl);
+      const statusId = this.getTweetStatusId(tweetEl);
+
+      if (!text && currentStatusId && statusId && statusId === currentStatusId) {
+        text = this.extractMainTweetTextFromMeta() || text;
+      }
       
       // 提取作者信息
       const userEl = tweetEl.querySelector('[data-testid="User-Name"]');
@@ -104,7 +182,8 @@ class ContentExtractor {
       
       return {
         index: index,
-        id: `tweet-${index}`,
+        id: statusId ? `tweet-${statusId}` : `tweet-${index}`,
+        statusId: statusId || '',
         text: text,
         textPlain: text,
         html: '',
@@ -127,55 +206,77 @@ class ContentExtractor {
    * 提取推文文本 - 改进版本
    */
   static extractTweetText(tweetEl) {
-    let text = '';
-    
-    // 方法1: 标准 tweetText 选择器
-    let textEl = tweetEl.querySelector('[data-testid="tweetText"]');
-    
-    // 方法2: 查找带 lang 属性的 div（包含文本内容）
-    if (!textEl) {
-      const langDivs = tweetEl.querySelectorAll('div[lang]');
-      for (const div of langDivs) {
-        // 确保不是媒体或元数据区域
-        if (!div.closest('[data-testid="tweetPhoto"]') && 
-            !div.closest('[data-testid="videoPlayer"]') &&
-            !div.closest('[data-testid="card.wrapper"]')) {
-          textEl = div;
-          break;
-        }
-      }
+    const candidates = [];
+
+    tweetEl.querySelectorAll('[data-testid="tweetText"]').forEach(el => candidates.push(el));
+
+    tweetEl.querySelectorAll('div[lang]').forEach(el => {
+      if (el.closest('[data-testid="tweetPhoto"]')) return;
+      if (el.closest('[data-testid="videoPlayer"]')) return;
+      if (el.closest('[data-testid="card.wrapper"]')) return;
+      candidates.push(el);
+    });
+
+    tweetEl.querySelectorAll('div[dir="auto"]').forEach(el => candidates.push(el));
+
+    let best = '';
+    for (const el of candidates) {
+      const raw = (el.innerText || el.textContent || '').trim();
+      const cleaned = this.normalizeTweetText(raw);
+      if (cleaned.length > best.length) best = cleaned;
     }
-    
-    // 方法3: 查找包含直接文本内容的元素
-    if (!textEl) {
-      const allDivs = tweetEl.querySelectorAll('div[dir="auto"]');
-      for (const div of allDivs) {
-        const text = div.innerText?.trim();
-        if (text && text.length > 5 && !text.includes('·')) {
-          textEl = div;
-          break;
-        }
-      }
+
+    return best;
+  }
+
+  static normalizeTweetText(text) {
+    if (!text) return '';
+    let t = String(text);
+    t = t.replace(/\r/g, '').replace(/\u00a0/g, ' ');
+    t = t.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n');
+    t = t.replace(/\u200b/g, '').trim();
+
+    const junk = [
+      'Show more',
+      'Show less',
+      'Read more',
+      'Translate Tweet',
+      '查看翻译',
+      '翻译推文',
+      '显示更多',
+      '显示更少',
+      '阅读更多'
+    ];
+
+    for (const s of junk) {
+      if (!t) break;
+      t = t.split(s).join('');
     }
-    
-    if (textEl) {
-      // 克隆元素以便处理
-      const clone = textEl.cloneNode(true);
-      
-      // 将 <br> 转换为换行符
-      clone.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
-      
-      // 移除隐藏元素
-      clone.querySelectorAll('[style*="display: none"]').forEach(el => el.remove());
-      
-      // 获取纯文本
-      text = clone.innerText || '';
-      
-      // 清理文本
-      text = text.trim();
+
+    return t.trim();
+  }
+
+  static extractMainTweetTextFromMeta() {
+    const selectors = [
+      'meta[property="og:description"]',
+      'meta[name="twitter:description"]',
+      'meta[property="twitter:description"]',
+      'meta[name="description"]'
+    ];
+
+    for (const sel of selectors) {
+      const el = document.querySelector(sel);
+      const content = (el && el.getAttribute('content')) ? el.getAttribute('content').trim() : '';
+      if (!content) continue;
+
+      const normalized = this.normalizeTweetText(content);
+      if (!normalized) continue;
+
+      const match = normalized.match(/^(.*?)(?:\s*—\s*[^—]{1,80}\s*\(@[^)]+\)\s*)$/);
+      return match ? match[1].trim() : normalized;
     }
-    
-    return text;
+
+    return '';
   }
   
   /**
@@ -427,8 +528,7 @@ class ContentExtractor {
     };
     
     try {
-      // 获取第一个推文作为线程信息来源
-      const firstTweet = document.querySelector('article[data-testid="tweet"]');
+      const firstTweet = this.findMainTweetElement() || document.querySelector('article[data-testid="tweet"]');
       if (firstTweet) {
         const userEl = firstTweet.querySelector('[data-testid="User-Name"]');
         info.author = this.extractAuthorName(userEl);
@@ -523,38 +623,41 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   
   if (request.action === 'extractThread') {
     console.log('[ThreadPrinter] Extracting thread...');
-    
-    try {
-      const data = ContentExtractor.extract();
-      console.log(`[ThreadPrinter] Extracted ${data.tweetCount} tweets with ${data.tweets.reduce((c, t) => c + (t.media?.images?.length || 0), 0)} images`);
-      
-      // 包装数据以匹配 popup.js 期望的格式
-      const wrappedData = {
-        metadata: {
-          author: {
-            name: data.author,
-            handle: data.authorHandle,
-            avatar: data.authorAvatar
+
+    (async () => {
+      try {
+        await ContentExtractor.waitForTweetsReady();
+        const data = ContentExtractor.extract();
+        console.log(`[ThreadPrinter] Extracted ${data.tweetCount} tweets with ${data.tweets.reduce((c, t) => c + (t.media?.images?.length || 0), 0)} images`);
+        
+        const wrappedData = {
+          metadata: {
+            author: {
+              name: data.author,
+              handle: data.authorHandle,
+              avatar: data.authorAvatar
+            },
+            title: data.title,
+            url: data.url,
+            publishedTime: data.publishedTime
           },
-          title: data.title,
-          url: data.url,
-          publishedTime: data.publishedTime
-        },
-        stats: {
-          tweetCount: data.tweetCount,
-          imageCount: data.tweets.reduce((count, tweet) => count + (tweet.media?.images?.length || 0), 0)
-        },
-        tweets: data.tweets,
-        type: data.type,
-        siteName: data.siteName,
-        extractedAt: data.extractedAt
-      };
-      
-      sendResponse({ success: true, data: wrappedData });
-    } catch (error) {
-      console.error('[ThreadPrinter] Extraction error:', error);
-      sendResponse({ success: false, error: error.message });
-    }
+          stats: {
+            tweetCount: data.tweetCount,
+            imageCount: data.tweets.reduce((count, tweet) => count + (tweet.media?.images?.length || 0), 0)
+          },
+          tweets: data.tweets,
+          type: data.type,
+          siteName: data.siteName,
+          extractedAt: data.extractedAt
+        };
+        
+        sendResponse({ success: true, data: wrappedData });
+      } catch (error) {
+        console.error('[ThreadPrinter] Extraction error:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+
     return true;
   }
 });
