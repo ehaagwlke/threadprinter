@@ -1,9 +1,13 @@
 // ThreadPrinter - Preview Page Script
+// 使用统一的生成器模块
 
-let threadData = null;
+import { normalizeData } from '../utils/dataNormalizer.js';
+
+let rawThreadData = null;
+let normalizedData = null;
 let selectedFormat = 'markdown';
 let currentTheme = 'default';
-let generators = null; // 动态加载的生成器
+let generators = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -35,13 +39,16 @@ async function loadThreadData() {
       'threadprinter_preview_format'
     ]);
     
-    threadData = result.threadprinter_preview_data;
+    rawThreadData = result.threadprinter_preview_data;
     selectedFormat = result.threadprinter_preview_format || 'markdown';
     
-    if (!threadData) {
+    if (!rawThreadData) {
       showError('No thread data found. Please extract a thread first.');
       return;
     }
+    
+    // 标准化数据
+    normalizedData = normalizeData(rawThreadData);
     
     // Set format selector
     document.getElementById('formatSelect').value = selectedFormat;
@@ -113,11 +120,16 @@ function updatePreviewStyles() {
   previewContent.style.lineHeight = lineHeight;
 }
 
+function getSelectedTweets() {
+  if (!normalizedData || !normalizedData.tweets) return [];
+  return normalizedData.tweets.filter(t => t.selected !== false);
+}
+
 function renderPreview() {
-  if (!threadData) return;
+  if (!normalizedData) return;
   
   const previewContent = document.getElementById('previewContent');
-  const selectedTweets = threadData.tweets.filter(t => t.selected !== false);
+  const selectedTweets = getSelectedTweets();
   
   if (selectedTweets.length === 0) {
     previewContent.innerHTML = `
@@ -128,52 +140,123 @@ function renderPreview() {
     return;
   }
   
-  const data = { ...threadData, tweets: selectedTweets };
+  // 创建用于预览的数据副本（只包含选中的推文）
+  const previewData = {
+    ...normalizedData,
+    tweets: selectedTweets
+  };
   
   switch (selectedFormat) {
     case 'markdown':
-      if (generators?.generateMarkdown) {
-        previewContent.innerHTML = `<pre><code>${escapeHtml(generators.generateMarkdown(data))}</code></pre>`;
-        previewContent.style.fontFamily = 'monospace';
-        previewContent.style.whiteSpace = 'pre-wrap';
-      } else {
-        previewContent.innerHTML = '<div class="empty-state">Generator not loaded. Please refresh.🔄</div>';
-      }
+      renderMarkdownPreview(previewData, previewContent);
       break;
     case 'html':
-      if (generators?.generateHTML) {
-        previewContent.innerHTML = generators.generateHTML(data);
-        previewContent.style.fontFamily = '';
-        previewContent.style.whiteSpace = '';
-      } else {
-        previewContent.innerHTML = '<div class="empty-state">Generator not loaded. Please refresh.🔄</div>';
-      }
+      renderHTMLPreview(previewData, previewContent);
       break;
     case 'pdf':
-    case 'png':
-      // For PDF/PNG, show styled HTML preview
-      previewContent.innerHTML = generateStyledHTML(data);
-      previewContent.style.fontFamily = '';
-      previewContent.style.whiteSpace = '';
+      renderPDFPreview(previewData, previewContent);
       break;
+    case 'png':
+      renderPNGPreview(previewData, previewContent);
+      break;
+    default:
+      previewContent.innerHTML = '<div class="empty-state">Unknown format</div>';
+  }
+}
+
+function renderMarkdownPreview(data, container) {
+  if (generators?.generateMarkdown) {
+    const markdown = generators.generateMarkdown(data);
+    container.innerHTML = `<pre class="markdown-preview"><code>${escapeHtml(markdown)}</code></pre>`;
+    container.style.fontFamily = 'monospace';
+    container.style.whiteSpace = 'pre-wrap';
+  } else {
+    container.innerHTML = '<div class="empty-state">Generator not loaded. Please refresh.🔄</div>';
+  }
+}
+
+function renderHTMLPreview(data, container) {
+  if (generators?.generateHTML) {
+    const html = generators.generateHTML(data);
+    // 只显示 body 内容用于预览
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    const bodyContent = bodyMatch ? bodyMatch[1] : html;
+    container.innerHTML = bodyContent;
+    container.style.fontFamily = '';
+    container.style.whiteSpace = '';
+  } else {
+    container.innerHTML = '<div class="empty-state">Generator not loaded. Please refresh.🔄</div>';
+  }
+}
+
+function renderPDFPreview(data, container) {
+  if (generators?.generateStyledHTML) {
+    // 使用 PDF 生成器的 styled HTML 进行预览
+    const html = generators.generateStyledHTML(data);
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    const bodyContent = bodyMatch ? bodyMatch[1] : html;
+    
+    // 添加 PDF 预览样式
+    container.innerHTML = `
+      <div class="pdf-preview-container">
+        <style>
+          .pdf-preview-container {
+            background: white;
+            padding: 20mm;
+            max-width: 210mm;
+            margin: 0 auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+          }
+          .pdf-preview-container img {
+            max-width: 100%;
+            height: auto;
+          }
+        </style>
+        ${bodyContent}
+      </div>
+    `;
+    container.style.fontFamily = '';
+    container.style.whiteSpace = '';
+  } else {
+    container.innerHTML = '<div class="empty-state">PDF generator not loaded. Please refresh.🔄</div>';
+  }
+}
+
+function renderPNGPreview(data, container) {
+  // PNG 预览与 PDF 类似，但提示用户使用截图工具
+  if (generators?.generateStyledHTML) {
+    const html = generators.generateStyledHTML(data);
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    const bodyContent = bodyMatch ? bodyMatch[1] : html;
+    
+    container.innerHTML = `
+      <div class="png-preview-notice" style="background: #e8f5fd; padding: 12px; margin-bottom: 16px; border-radius: 8px; border-left: 4px solid #1d9bf0;">
+        <strong>📷 PNG Export Preview</strong><br>
+        <small>Use your browser screenshot tool or print to PDF and convert to PNG for best results.</small>
+      </div>
+      <div class="png-preview-container" style="background: white; padding: 20px; border-radius: 8px;">
+        ${bodyContent}
+      </div>
+    `;
+  } else {
+    container.innerHTML = '<div class="empty-state">PNG generator not loaded. Please refresh.🔄</div>';
   }
 }
 
 function renderTweetList() {
-  if (!threadData) return;
+  if (!normalizedData || !normalizedData.tweets) return;
   
   const tweetList = document.getElementById('tweetList');
   tweetList.innerHTML = '';
   
-  threadData.tweets.forEach((tweet, index) => {
+  normalizedData.tweets.forEach((tweet, index) => {
     const item = document.createElement('div');
     item.className = `tweet-item ${tweet.selected !== false ? 'selected' : ''}`;
     item.dataset.index = index;
     
-    // Get display text - handle both old and new format
-    const displayText = tweet.text || tweet.textPlain || '';
-    const images = tweet.media?.images || tweet.images || [];
-    const videos = tweet.media?.videos || tweet.videos || [];
+    const displayText = tweet.text || '';
+    const images = tweet.media?.images || [];
+    const videos = tweet.media?.videos || [];
     
     item.innerHTML = `
       <input type="checkbox" ${tweet.selected !== false ? 'checked' : ''}>
@@ -206,47 +289,54 @@ function renderTweetList() {
 }
 
 function toggleTweetSelection(index, element) {
-  if (!threadData.tweets[index]) return;
-  threadData.tweets[index].selected = !(threadData.tweets[index].selected !== false);
-  element.classList.toggle('selected', threadData.tweets[index].selected !== false);
+  if (!normalizedData.tweets[index]) return;
+  normalizedData.tweets[index].selected = !(normalizedData.tweets[index].selected !== false);
+  element.classList.toggle('selected', normalizedData.tweets[index].selected !== false);
   updateSelectedCount();
   renderPreview();
 }
 
 function setAllTweetsSelected(selected) {
-  threadData.tweets.forEach(tweet => tweet.selected = selected);
+  normalizedData.tweets.forEach(tweet => tweet.selected = selected);
   renderTweetList();
   renderPreview();
 }
 
 function updateSelectedCount() {
-  const count = threadData.tweets.filter(t => t.selected !== false).length;
-  document.getElementById('selectedCount').textContent = `${count} of ${threadData.tweets.length} selected`;
+  const count = getSelectedTweets().length;
+  const total = normalizedData.tweets.length;
+  document.getElementById('selectedCount').textContent = `${count} of ${total} selected`;
 }
 
 async function handleExport() {
-  const selectedTweets = threadData.tweets.filter(t => t.selected !== false);
+  const selectedTweets = getSelectedTweets();
   
   if (selectedTweets.length === 0) {
     alert('Please select at least one tweet to export.');
     return;
   }
   
-  const data = { ...threadData, tweets: selectedTweets };
+  // 创建用于导出的数据副本
+  const exportData = {
+    ...normalizedData,
+    tweets: selectedTweets
+  };
   
   switch (selectedFormat) {
     case 'markdown':
       if (generators?.generateMarkdown) {
-        await downloadFile(generators.generateMarkdown(data), 'thread.md', 'text/markdown');
+        const content = generators.generateMarkdown(exportData);
+        await downloadFile(content, 'thread.md', 'text/markdown');
       }
       break;
     case 'html':
       if (generators?.generateHTML) {
-        await downloadFile(generators.generateHTML(data), 'thread.html', 'text/html');
+        const content = generators.generateHTML(exportData);
+        await downloadFile(content, 'thread.html', 'text/html');
       }
       break;
     case 'pdf':
-      generatePDF(data);
+      generatePDF(exportData);
       break;
     case 'png':
       alert('PNG export: Please use your browser\'s screenshot tool or print to PDF and convert to PNG.');
@@ -268,102 +358,20 @@ async function downloadFile(content, filename, mimeType) {
 function generatePDF(data) {
   // Open print dialog for PDF generation
   const printWindow = window.open('', '_blank');
-  printWindow.document.write(generateStyledHTML(data, true));
-  printWindow.document.close();
-  
-  setTimeout(() => {
-    printWindow.print();
-  }, 500);
-}
-
-function generateStyledHTML(data, forPrint = false) {
-  const { metadata, tweets, url } = data;
-  
-  let html = '';
-  
-  // Header
-  html += '<div class="thread-header">';
-  html += `<h1 class="thread-title">${escapeHtml(metadata?.title || 'Thread')}</h1>`;
-  
-  // Author info
-  if (metadata?.author) {
-    html += '<div class="author-info">';
-    if (metadata.author.avatar) {
-      html += `<img src="${metadata.author.avatar}" alt="" class="author-avatar">`;
-    }
-    html += '<div class="author-details">';
-    html += `<div class="author-name">${escapeHtml(metadata.author.name || 'Unknown')}</div>`;
-    if (metadata.author.handle) {
-      html += `<div class="author-handle">${escapeHtml(metadata.author.handle)}</div>`;
-    }
-    html += '</div>';
-    html += '</div>';
+  if (!printWindow) {
+    alert('Please allow popups to generate PDF.');
+    return;
   }
   
-  html += '<div class="thread-meta">';
-  html += `<div>Source: <a href="${url}" target="_blank">${url}</a></div>`;
-  html += `<div>Extracted: ${new Date().toLocaleString()}</div>`;
-  html += '</div>';
-  html += '</div>';
-  
-  // Tweets
-  html += '<div class="thread-tweets">';
-  
-  tweets.forEach((tweet, index) => {
-    html += `<div class="tweet" data-index="${index}">`;
+  if (generators?.generateStyledHTML) {
+    const html = generators.generateStyledHTML(data);
+    printWindow.document.write(html);
+    printWindow.document.close();
     
-    // Avatar
-    if (tweet.author?.avatar) {
-      html += `<img src="${tweet.author.avatar}" alt="" class="tweet-avatar">`;
-    }
-    
-    html += '<div class="tweet-content">';
-    
-    // Header
-    html += '<div class="tweet-header">';
-    html += `<span class="tweet-author-name">${escapeHtml(tweet.author?.name || 'Unknown')}</span>`;
-    if (tweet.author?.handle) {
-      html += `<span class="tweet-author-handle">${escapeHtml(tweet.author.handle)}</span>`;
-    }
-    if (tweet.displayTime) {
-      html += `<span class="tweet-time">· ${escapeHtml(tweet.displayTime)}</span>`;
-    }
-    html += '</div>';
-    
-    // Text content
-    const text = tweet.text || tweet.textPlain || '';
-    if (text) {
-      html += `<div class="tweet-text">${escapeHtml(text).replace(/\n/g, '<br>')}</div>`;
-    }
-    
-    // Media
-    const images = tweet.media?.images || tweet.images || [];
-    if (images.length > 0) {
-      const gridClass = images.length === 1 ? 'single-image' : 
-                        images.length === 2 ? 'two-images' :
-                        images.length === 3 ? 'three-images' : 'four-images';
-      
-      html += `<div class="tweet-media ${gridClass}">`;
-      images.forEach(img => {
-        const imgUrl = typeof img === 'string' ? img : img.url;
-        const imgAlt = typeof img === 'string' ? '' : (img.alt || '');
-        html += `<img src="${imgUrl}" alt="${escapeHtml(imgAlt)}" loading="lazy">`;
-      });
-      html += '</div>';
-    }
-    
-    html += '</div>';
-    html += '</div>';
-  });
-  
-  html += '</div>';
-  
-  // Footer
-  html += '<div class="thread-footer">';
-  html += `Generated by ThreadPrinter · ${tweets.length} tweets extracted`;
-  html += '</div>';
-  
-  return html;
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
+  }
 }
 
 function showError(message) {

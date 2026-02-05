@@ -1,17 +1,21 @@
 /**
  * ThreadPrinter - PDF Generator
- * PDF 格式生成器
+ * PDF 格式生成器 - 使用标准化数据格式
  */
+
+import { normalizeData } from './dataNormalizer.js';
 
 const PdfGenerator = {
   /**
    * 生成 PDF
-   * @param {Object} data - 提取的数据
+   * @param {Object} rawData - 提取的原始数据
    * @param {string} method - 生成方法 ('print' 或 'html2pdf')
    * @returns {Promise}
    */
-  async generate(data, method = 'print') {
-    if (!data) throw new Error('No data provided');
+  async generate(rawData, method = 'print') {
+    if (!rawData) throw new Error('No data provided');
+    
+    const data = normalizeData(rawData);
 
     if (method === 'print') {
       return this.generateViaPrint(data);
@@ -22,7 +26,7 @@ const PdfGenerator = {
 
   /**
    * 通过浏览器打印生成 PDF
-   * @param {Object} data - 提取的数据
+   * @param {Object} data - 标准化后的数据
    * @returns {Promise}
    */
   async generateViaPrint(data) {
@@ -54,7 +58,7 @@ const PdfGenerator = {
 
   /**
    * 生成打印优化的 HTML
-   * @param {Object} data - 提取的数据
+   * @param {Object} data - 标准化后的数据
    * @returns {string}
    */
   generatePrintHtml(data) {
@@ -89,7 +93,7 @@ const PdfGenerator = {
 
   /**
    * 生成 X/Twitter 线程打印 HTML
-   * @param {Object} data - 线程数据
+   * @param {Object} data - 标准化后的线程数据
    * @returns {string}
    */
   generateTwitterThreadHtml(data) {
@@ -121,11 +125,12 @@ const PdfGenerator = {
     html += `</div>`;
     html += `</div>`;
 
-    // 推文列表
-    if (data.tweets && data.tweets.length > 0) {
+    // 推文列表 - 只包含选中的推文
+    const selectedTweets = data.tweets.filter(t => t.selected !== false);
+    if (selectedTweets.length > 0) {
       html += `<div class="print-tweets">`;
       
-      data.tweets.forEach((tweet, index) => {
+      selectedTweets.forEach((tweet, index) => {
         html += this.generateTweetPrintHtml(tweet, index);
       });
       
@@ -134,7 +139,7 @@ const PdfGenerator = {
 
     // 统计
     html += `<div class="print-stats">`;
-    html += `<p>共 ${data.tweetCount} 条推文 · 提取于 ${this.formatDate(data.extractedAt)}</p>`;
+    html += `<p>共 ${selectedTweets.length} 条推文 · 提取于 ${this.formatDate(data.extractedAt)}</p>`;
     html += `</div>`;
 
     return html;
@@ -142,7 +147,7 @@ const PdfGenerator = {
 
   /**
    * 生成单条推文打印 HTML
-   * @param {Object} tweet - 推文数据
+   * @param {Object} tweet - 标准化后的推文数据
    * @param {number} index - 索引
    * @returns {string}
    */
@@ -209,7 +214,7 @@ const PdfGenerator = {
 
   /**
    * 生成通用内容打印 HTML
-   * @param {Object} data - 内容数据
+   * @param {Object} data - 标准化后的内容数据
    * @returns {string}
    */
   generateGenericContentHtml(data) {
@@ -474,6 +479,15 @@ const PdfGenerator = {
    */
   escapeHtml(text) {
     if (!text) return '';
+    // Node.js 环境兼容
+    if (typeof document === 'undefined') {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -509,11 +523,11 @@ if (typeof module !== 'undefined' && module.exports) {
 
 export function generatePDF(data) {
   // PDF 生成通过预览页面的打印对话框实现
-  return PdfGenerator.generateStyledHTML(data);
+  return PdfGenerator.generate(data);
 }
 
 export function generateStyledHTML(data, forPrint = false) {
-  return PdfGenerator.generateStyledHTML(data, forPrint);
+  return PdfGenerator.generatePrintHtml(data);
 }
 
 export default PdfGenerator;

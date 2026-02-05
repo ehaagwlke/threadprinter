@@ -1,16 +1,20 @@
 /**
  * ThreadPrinter - Markdown Generator
- * Markdown 格式生成器
+ * Markdown 格式生成器 - 使用标准化数据格式
  */
+
+import { normalizeData } from './dataNormalizer.js';
 
 const MarkdownGenerator = {
   /**
    * 生成 Markdown 内容
-   * @param {Object} data - 提取的数据
+   * @param {Object} rawData - 提取的原始数据
    * @returns {string}
    */
-  generate(data) {
-    if (!data) return '';
+  generate(rawData) {
+    if (!rawData) return '';
+    
+    const data = normalizeData(rawData);
 
     if (data.type === 'twitter_thread') {
       return this.generateTwitterThread(data);
@@ -21,7 +25,7 @@ const MarkdownGenerator = {
 
   /**
    * 生成 X/Twitter 线程 Markdown
-   * @param {Object} data - 线程数据
+   * @param {Object} data - 标准化后的线程数据
    * @returns {string}
    */
   generateTwitterThread(data) {
@@ -49,6 +53,9 @@ const MarkdownGenerator = {
     // 推文内容
     if (data.tweets && data.tweets.length > 0) {
       data.tweets.forEach((tweet, index) => {
+        // 只处理选中的推文
+        if (tweet.selected === false) return;
+        
         lines.push(`## 推文 ${index + 1}`);
         lines.push('');
 
@@ -117,7 +124,7 @@ const MarkdownGenerator = {
 
   /**
    * 生成通用内容 Markdown
-   * @param {Object} data - 内容数据
+   * @param {Object} data - 标准化后的内容数据
    * @returns {string}
    */
   generateGenericContent(data) {
@@ -155,7 +162,7 @@ const MarkdownGenerator = {
       lines.push(data.textContent);
     } else if (data.content) {
       // 简单去除 HTML 标签
-      const text = data.content.replace(/\u003c[^\u003e]*\u003e/g, '');
+      const text = data.content.replace(/<[^>]*>/g, '');
       lines.push(text);
     }
 

@@ -1,16 +1,20 @@
 /**
  * ThreadPrinter - HTML Generator
- * HTML 格式生成器
+ * HTML 格式生成器 - 使用标准化数据格式
  */
+
+import { normalizeData } from './dataNormalizer.js';
 
 const HtmlGenerator = {
   /**
    * 生成 HTML 内容
-   * @param {Object} data - 提取的数据
+   * @param {Object} rawData - 提取的原始数据
    * @returns {string}
    */
-  generate(data) {
-    if (!data) return '';
+  generate(rawData) {
+    if (!rawData) return '';
+    
+    const data = normalizeData(rawData);
 
     const content = data.type === 'twitter_thread' 
       ? this.generateTwitterThread(data)
@@ -22,7 +26,7 @@ const HtmlGenerator = {
   /**
    * 包装完整 HTML 文档
    * @param {string} content - 主体内容
-   * @param {Object} data - 元数据
+   * @param {Object} data - 标准化后的数据
    * @returns {string}
    */
   wrapHtml(content, data) {
@@ -49,7 +53,7 @@ const HtmlGenerator = {
 
   /**
    * 生成 X/Twitter 线程 HTML
-   * @param {Object} data - 线程数据
+   * @param {Object} data - 标准化后的线程数据
    * @returns {string}
    */
   generateTwitterThread(data) {
@@ -76,11 +80,12 @@ const HtmlGenerator = {
     html += `<span class="tweet-count">${data.tweetCount} 条推文</span>`;
     html += `</div>`;
 
-    // 推文列表
-    if (data.tweets && data.tweets.length > 0) {
+    // 推文列表 - 只包含选中的推文
+    const selectedTweets = data.tweets.filter(t => t.selected !== false);
+    if (selectedTweets.length > 0) {
       html += `<div class="tweets-list">`;
       
-      data.tweets.forEach((tweet, index) => {
+      selectedTweets.forEach((tweet, index) => {
         html += this.generateTweetHtml(tweet, index);
       });
 
@@ -92,7 +97,7 @@ const HtmlGenerator = {
 
   /**
    * 生成单条推文 HTML
-   * @param {Object} tweet - 推文数据
+   * @param {Object} tweet - 标准化后的推文数据
    * @param {number} index - 索引
    * @returns {string}
    */
@@ -132,7 +137,7 @@ const HtmlGenerator = {
 
   /**
    * 生成媒体 HTML
-   * @param {Object} media - 媒体数据
+   * @param {Object} media - 标准化后的媒体数据
    * @returns {string}
    */
   generateMediaHtml(media) {
@@ -175,7 +180,7 @@ const HtmlGenerator = {
       if (card.title) {
         html += `<div class="card-title">${this.escapeHtml(card.title)}</div>`;
       }
-      html += `<div class="card-url">${this.escapeHtml(new URL(card.url).hostname)}</div>`;
+      html += `<div class="card-url">${this.escapeHtml(this.getHostname(card.url))}</div>`;
       html += `</div>`;
       html += `</a>`;
     }
@@ -184,8 +189,21 @@ const HtmlGenerator = {
   },
 
   /**
+   * 获取主机名
+   * @param {string} url - URL
+   * @returns {string}
+   */
+  getHostname(url) {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return url;
+    }
+  },
+
+  /**
    * 生成通用内容 HTML
-   * @param {Object} data - 内容数据
+   * @param {Object} data - 标准化后的内容数据
    * @returns {string}
    */
   generateGenericContent(data) {
@@ -535,6 +553,15 @@ const HtmlGenerator = {
    */
   escapeHtml(text) {
     if (!text) return '';
+    // Node.js 环境兼容
+    if (typeof document === 'undefined') {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;

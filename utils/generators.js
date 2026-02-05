@@ -5,6 +5,13 @@
 
 import { generateMarkdown } from './markdownGenerator.js';
 import { generateHTML } from './htmlGenerator.js';
-import { generatePDF } from './pdfGenerator.js';
+import { generatePDF, generateStyledHTML } from './pdfGenerator.js';
+import { normalizeData } from './dataNormalizer.js';
 
-export { generateMarkdown, generateHTML, generatePDF };
+export { 
+  generateMarkdown, 
+  generateHTML, 
+  generatePDF, 
+  generateStyledHTML,
+  normalizeData 
+};
