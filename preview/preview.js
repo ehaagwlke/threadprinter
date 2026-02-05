@@ -241,16 +241,6 @@ function renderStyledPreview(data, container, format) {
   html += '</div>';
   
   // 如果是 PDF/PNG 格式，添加提示
-  if (format === 'png') {
-    html = `
-      <div style="background: #e8f5fd; padding: 12px; margin-bottom: 16px; border-radius: 8px; border-left: 4px solid #1d9bf0;">
-        <strong>📷 PNG Export Preview</strong><br>
-        <small>Use your browser screenshot tool or print to PDF and convert to PNG for best results.</small>
-      </div>
-      ${html}
-    `;
-  }
-  
   container.innerHTML = html;
 }
 
@@ -444,11 +434,25 @@ async function handleExport() {
       }
       break;
     case 'pdf':
-      generatePDF(exportData);
+      await exportViaBackground('exportPdf', exportData);
       break;
     case 'png':
-      alert('PNG export: Please use your browser\'s screenshot tool or print to PDF and convert to PNG.');
+      await exportViaBackground('exportPng', exportData);
       break;
+  }
+}
+
+async function exportViaBackground(action, data) {
+  try {
+    const response = await new Promise(resolve => {
+      chrome.runtime.sendMessage({ action, data }, resolve);
+    });
+
+    if (!response?.success) {
+      alert(response?.error || 'Export failed.');
+    }
+  } catch (error) {
+    alert(error?.message || 'Export failed.');
   }
 }
 
@@ -461,46 +465,6 @@ async function downloadFile(content, filename, mimeType) {
     filename: filename,
     saveAs: true
   });
-}
-
-function generatePDF(data) {
-  // Open print dialog for PDF generation
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) {
-    alert('Please allow popups to generate PDF.');
-    return;
-  }
-  
-  if (generators?.generateStyledHTML) {
-    const html = generators.generateStyledHTML(data);
-    printWindow.document.write(html);
-    printWindow.document.close();
-    
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
-  } else {
-    // 备用：使用简单的打印页面
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Thread Print</title>
-        <style>
-          body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-          .tweet { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #ddd; }
-          img { max-width: 100%; height: auto; }
-        </style>
-      </head>
-      <body>
-        ${document.getElementById('previewContent').innerHTML}
-        <script>window.print();<\/script>
-      </body>
-      </html>
-    `;
-    printWindow.document.write(html);
-    printWindow.document.close();
-  }
 }
 
 function showError(message) {

@@ -20,6 +20,16 @@ class ContentExtractor {
     
     return this.extractGenericContent();
   }
+
+  static async extractAsync() {
+    const url = window.location.href;
+    
+    if (this.isTwitter(url)) {
+      return await this.extractTwitterThreadAsync();
+    }
+    
+    return this.extractGenericContent();
+  }
   
   /**
    * 检查是否为 X/Twitter 网站
@@ -44,12 +54,60 @@ class ContentExtractor {
     return '';
   }
 
-  static getTweetElements() {
-    let tweetElements = document.querySelectorAll('article[data-testid="tweet"]');
-    if (tweetElements.length === 0) {
-      tweetElements = document.querySelectorAll('article[tabindex="0"]');
+  static getConversationRoot() {
+    const timelines = Array.from(document.querySelectorAll('div[aria-label^="Timeline:"]'));
+    if (timelines.length > 0) {
+      const preferred = [
+        'Timeline: Conversation',
+        'Timeline: Thread',
+        'Timeline: Search timeline',
+        'Conversation',
+        'Thread',
+        '对话',
+        '会话',
+        '帖子'
+      ];
+
+      for (const key of preferred) {
+        const hit = timelines.find(el => (el.getAttribute('aria-label') || '').includes(key));
+        if (hit) return hit;
+      }
+
+      return timelines[0];
     }
-    return tweetElements;
+
+    return document.querySelector('main') || document.body;
+  }
+
+  static getTweetElementsFromRoot(root) {
+    const set = new Set();
+
+    const addAll = (nodes) => {
+      for (const n of nodes || []) {
+        if (n && n.nodeType === 1) set.add(n);
+      }
+    };
+
+    addAll(root.querySelectorAll('article[data-testid="tweet"]'));
+    if (set.size === 0) addAll(root.querySelectorAll('article[tabindex="0"]'));
+    if (set.size === 0) addAll(root.querySelectorAll('article'));
+
+    const statusLinks = root.querySelectorAll('a[href*="/status/"]');
+    for (const a of statusLinks) {
+      const article = a.closest('article');
+      if (article) set.add(article);
+    }
+
+    return Array.from(set);
+  }
+
+  static getTweetElements() {
+    const root = this.getConversationRoot();
+    const scoped = this.getTweetElementsFromRoot(root);
+    if (scoped.length > 0) return scoped;
+
+    const global = this.getTweetElementsFromRoot(document);
+    return global;
   }
 
   static findMainTweetElement() {
@@ -82,12 +140,52 @@ class ContentExtractor {
       tick();
     });
   }
+
+  static async tryLoadMoreTweets({ maxScrolls = 6, settleMs = 260 } = {}) {
+    let lastCount = this.getTweetElements().length;
+    let stable = 0;
+
+    for (let i = 0; i < maxScrolls; i++) {
+      window.scrollBy(0, Math.max(300, Math.floor(window.innerHeight * 0.9)));
+      await new Promise(resolve => setTimeout(resolve, settleMs));
+
+      const nextCount = this.getTweetElements().length;
+      if (nextCount > lastCount) {
+        lastCount = nextCount;
+        stable = 0;
+      } else {
+        stable += 1;
+        if (stable >= 2) break;
+      }
+    }
+  }
   
   /**
    * 提取 X/Twitter 线程内容
    */
   static extractTwitterThread() {
     const tweets = this.extractTweets();
+    const threadInfo = this.extractThreadInfo();
+    
+    return {
+      type: 'twitter_thread',
+      url: window.location.href,
+      title: threadInfo.title || document.title,
+      author: threadInfo.author,
+      authorHandle: threadInfo.authorHandle,
+      authorAvatar: threadInfo.authorAvatar,
+      publishedTime: threadInfo.publishedTime,
+      tweetCount: tweets.length,
+      tweets: tweets,
+      extractedAt: new Date().toISOString(),
+      siteName: 'X (Twitter)'
+    };
+  }
+
+  static async extractTwitterThreadAsync() {
+    await this.tryLoadMoreTweets();
+    const tweets = this.extractTweets();
+    await this.enrichMainTweetFromSyndication(tweets);
     const threadInfo = this.extractThreadInfo();
     
     return {
@@ -124,7 +222,7 @@ class ContentExtractor {
 
     if (currentStatusId && !tweets.some(t => t.statusId === currentStatusId)) {
       const metaText = this.extractMainTweetTextFromMeta();
-      if (metaText) {
+      if (metaText && !this.isBadTweetText(metaText)) {
         const threadInfo = this.extractThreadInfo();
         tweets.unshift({
           index: 0,
@@ -144,8 +242,17 @@ class ContentExtractor {
         });
       }
     }
+
+    const unique = [];
+    const seen = new Set();
+    for (const t of tweets) {
+      const key = t.statusId || `${t.timestamp || ''}::${t.text || ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(t);
+    }
     
-    return tweets;
+    return unique;
   }
   
   /**
@@ -226,7 +333,18 @@ class ContentExtractor {
       if (cleaned.length > best.length) best = cleaned;
     }
 
-    return best;
+    if (best) return best;
+
+    try {
+      if (typeof Readability === 'undefined') return '';
+      const doc = document.implementation.createHTMLDocument(document.title || 'tweet');
+      doc.body.innerHTML = tweetEl.innerHTML;
+      const article = new Readability(doc, { keepClasses: true }).parse();
+      const fallback = this.normalizeTweetText(article?.textContent || '');
+      return fallback;
+    } catch {
+      return '';
+    }
   }
 
   static normalizeTweetText(text) {
@@ -277,6 +395,95 @@ class ContentExtractor {
     }
 
     return '';
+  }
+
+  static isBadTweetText(text) {
+    const t = this.normalizeTweetText(text);
+    if (!t) return true;
+    const patterns = [
+      '登录注册出错了',
+      '请尝试重新加载',
+      'Something went wrong',
+      'Try reloading',
+      'Log in',
+      'Sign up',
+      'Join today'
+    ];
+    return patterns.some(p => t.includes(p));
+  }
+
+  static computeSyndicationToken(tweetId) {
+    const n = Number(tweetId);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    return ((n / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '');
+  }
+
+  static async fetchTweetTextViaSyndication(tweetId, lang = 'zh') {
+    const token = this.computeSyndicationToken(tweetId);
+    const qs = new URLSearchParams({ id: tweetId });
+    if (lang) qs.set('lang', lang);
+    if (token) qs.set('token', token);
+    const url = `https://cdn.syndication.twimg.com/tweet-result?${qs.toString()}`;
+
+    const resp = await fetch(url, { credentials: 'omit', cache: 'no-store' });
+    if (!resp.ok) throw new Error(`syndication http ${resp.status}`);
+    const data = await resp.json();
+
+    const textCandidates = [
+      data?.text,
+      data?.full_text,
+      data?.tweet?.text,
+      data?.tweet?.full_text,
+      data?.quoted_tweet?.text
+    ].filter(Boolean);
+
+    for (const c of textCandidates) {
+      const normalized = this.normalizeTweetText(c);
+      if (normalized && !this.isBadTweetText(normalized)) return normalized;
+    }
+
+    return '';
+  }
+
+  static async enrichMainTweetFromSyndication(tweets) {
+    const statusId = this.getCurrentStatusId();
+    if (!statusId) return;
+
+    const idx = tweets.findIndex(t => t.statusId === statusId);
+    const existing = idx >= 0 ? tweets[idx] : null;
+    const currentText = existing?.text || '';
+    if (existing && !this.isBadTweetText(currentText)) return;
+
+    try {
+      const fetchedText = await this.fetchTweetTextViaSyndication(statusId, 'zh');
+      if (!fetchedText) return;
+
+      if (existing) {
+        existing.text = fetchedText;
+        existing.textPlain = fetchedText;
+        return;
+      }
+
+      const threadInfo = this.extractThreadInfo();
+      tweets.unshift({
+        index: 0,
+        id: `tweet-${statusId}`,
+        statusId,
+        text: fetchedText,
+        textPlain: fetchedText,
+        html: '',
+        author: threadInfo.author,
+        authorHandle: threadInfo.authorHandle,
+        timestamp: threadInfo.publishedTime,
+        displayTime: '',
+        media: { images: [], videos: [] },
+        engagement: { replies: 0, retweets: 0, likes: 0, views: 0 },
+        links: [],
+        selected: true
+      });
+    } catch (error) {
+      console.warn('[ThreadPrinter] Syndication fetch failed:', error);
+    }
   }
   
   /**
@@ -627,7 +834,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     (async () => {
       try {
         await ContentExtractor.waitForTweetsReady();
-        const data = ContentExtractor.extract();
+        const data = await ContentExtractor.extractAsync();
         console.log(`[ThreadPrinter] Extracted ${data.tweetCount} tweets with ${data.tweets.reduce((c, t) => c + (t.media?.images?.length || 0), 0)} images`);
         
         const wrappedData = {
