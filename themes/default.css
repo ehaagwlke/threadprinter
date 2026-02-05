@@ -1,6 +1,7 @@
-/* ThreadPrinter - 默认主题 */
+/* ThreadPrinter - 默认主题 - 仅作用于预览内容 */
 
-:root {
+/* 预览内容区域变量 */
+.preview-content {
   --tp-bg: #ffffff;
   --tp-text: #0f1419;
   --tp-text-secondary: #536471;
@@ -8,91 +9,77 @@
   --tp-accent: #1d9bf0;
   --tp-accent-hover: #1a8cd8;
   --tp-muted: #f7f9f9;
-}
-
-.thread-container {
+  
   background: var(--tp-bg);
   color: var(--tp-text);
 }
 
-.thread-header {
+/* 线程头部 */
+.preview-content .thread-header {
   background: linear-gradient(135deg, var(--tp-muted) 0%, var(--tp-bg) 100%);
   border-bottom: 1px solid var(--tp-border);
 }
 
-.tweet {
-  border-bottom: 1px solid var(--tp-border);
-}
-
-.tweet.deleted {
-  background: var(--tp-muted);
-}
-
-.tweet-content a {
-  color: var(--tp-accent);
-}
-
-.tweet-content a:hover {
-  color: var(--tp-accent-hover);
-}
-
-.tweet-select span {
-  color: var(--tp-text-secondary);
-}
-
-.tweet-meta time {
-  color: var(--tp-text-secondary);
-}
-
-.tweet-delete-btn {
-  color: var(--tp-text-secondary);
-}
-
-.tweet-delete-btn:hover {
-  color: #f4212e;
-  background: #ffedef;
-}
-
-.thread-footer {
-  background: var(--tp-muted);
-  color: var(--tp-text-secondary);
-}
-
-.tweet-links a {
-  background: #e8f5fd;
-  color: var(--tp-accent);
-}
-
-.tweet-links a:hover {
-  background: #d7effc;
-}
-
-.tweet-card {
-  border: 1px solid var(--tp-border);
-}
-
-.tweet-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.card-url {
-  color: var(--tp-text-secondary);
-}
-
-.video-overlay {
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.video-overlay span {
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-}
-
-.generic-content h1 {
+.preview-content .thread-header h1 {
   color: var(--tp-text);
 }
 
-.generic-content .byline,
-.generic-content .publish-date {
+.preview-content .author-name {
+  color: var(--tp-text);
+}
+
+.preview-content .author-handle {
   color: var(--tp-text-secondary);
+}
+
+.preview-content .thread-meta {
+  color: var(--tp-text-secondary);
+}
+
+.preview-content .thread-meta a {
+  color: var(--tp-accent);
+}
+
+/* 推文 */
+.preview-content .tweet {
+  border-bottom: 1px solid var(--tp-border);
+}
+
+.preview-content .tweet:last-child {
+  border-bottom: none;
+}
+
+.preview-content .tweet-author-name {
+  color: var(--tp-text);
+}
+
+.preview-content .tweet-author-handle {
+  color: var(--tp-text-secondary);
+}
+
+.preview-content .tweet-time {
+  color: var(--tp-text-secondary);
+}
+
+.preview-content .tweet-text {
+  color: var(--tp-text);
+}
+
+.preview-content .tweet-text a {
+  color: var(--tp-accent);
+}
+
+.preview-content .tweet-text a:hover {
+  color: var(--tp-accent-hover);
+  text-decoration: underline;
+}
+
+/* Markdown 预览 */
+.preview-content .markdown-preview {
+  background: var(--tp-muted);
+  border: 1px solid var(--tp-border);
+}
+
+.preview-content .markdown-preview code {
+  color: var(--tp-text);
 }

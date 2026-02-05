@@ -1,6 +1,7 @@
-/* ThreadPrinter - 深色主题 */
+/* ThreadPrinter - 深色主题 - 仅作用于预览内容 */
 
-:root {
+/* 预览内容区域变量 */
+.preview-content {
   --tp-bg: #15202b;
   --tp-text: #e7e9ea;
   --tp-text-secondary: #71767b;
@@ -8,144 +9,86 @@
   --tp-accent: #1d9bf0;
   --tp-accent-hover: #4dabf7;
   --tp-muted: #1e2732;
-}
-
-.thread-container {
+  
   background: var(--tp-bg);
   color: var(--tp-text);
 }
 
-.thread-header {
+/* 线程头部 */
+.preview-content .thread-header {
   background: linear-gradient(135deg, var(--tp-muted) 0%, var(--tp-bg) 100%);
   border-bottom: 1px solid var(--tp-border);
 }
 
-.author-avatar {
+.preview-content .thread-header h1 {
+  color: var(--tp-text);
+}
+
+.preview-content .author-avatar {
   border-color: var(--tp-bg);
 }
 
-.author-name {
+.preview-content .author-name {
   color: var(--tp-text);
 }
 
-.tweet {
+.preview-content .author-handle {
+  color: var(--tp-text-secondary);
+}
+
+.preview-content .thread-meta {
+  color: var(--tp-text-secondary);
+}
+
+.preview-content .thread-meta a {
+  color: var(--tp-accent);
+}
+
+/* 推文 */
+.preview-content .tweet {
   border-bottom: 1px solid var(--tp-border);
 }
 
-.tweet.deleted {
-  background: var(--tp-muted);
-  opacity: 0.4;
+.preview-content .tweet:last-child {
+  border-bottom: none;
 }
 
-.tweet-content {
+.preview-content .tweet-author-name {
   color: var(--tp-text);
 }
 
-.tweet-content a {
+.preview-content .tweet-author-handle {
+  color: var(--tp-text-secondary);
+}
+
+.preview-content .tweet-time {
+  color: var(--tp-text-secondary);
+}
+
+.preview-content .tweet-text {
+  color: var(--tp-text);
+}
+
+.preview-content .tweet-text a {
   color: var(--tp-accent);
 }
 
-.tweet-content a:hover {
+.preview-content .tweet-text a:hover {
   color: var(--tp-accent-hover);
 }
 
-.tweet-select span {
-  color: var(--tp-text-secondary);
-}
-
-.tweet-meta time {
-  color: var(--tp-text-secondary);
-}
-
-.tweet-delete-btn {
-  color: var(--tp-text-secondary);
-}
-
-.tweet-delete-btn:hover {
-  background: rgba(244, 33, 46, 0.1);
-  color: #f4212e;
-}
-
-.thread-footer {
-  background: var(--tp-muted);
-  color: var(--tp-text-secondary);
-}
-
-.tweet-links a {
-  background: rgba(29, 155, 240, 0.1);
-  color: var(--tp-accent);
-}
-
-.tweet-links a:hover {
-  background: rgba(29, 155, 240, 0.2);
-}
-
-.tweet-card {
+/* Markdown 预览 */
+.preview-content .markdown-preview {
   background: var(--tp-muted);
   border: 1px solid var(--tp-border);
 }
 
-.tweet-card:hover {
-  background: #263340;
-}
-
-.card-url {
-  color: var(--tp-text-secondary);
-}
-
-.media-item figcaption {
-  background: var(--tp-muted);
-  color: var(--tp-text-secondary);
-}
-
-.preview-area {
-  background: #000;
-}
-
-.content-wrapper {
-  background: var(--tp-bg);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.toolbar {
-  background: var(--tp-muted);
-  border-right-color: var(--tp-border);
-}
-
-.toolbar-section h3 {
-  color: var(--tp-text-secondary);
-}
-
-.theme-radio:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.control-group input[type="range"] {
-  background: var(--tp-border);
-}
-
-.export-btn {
-  background: var(--tp-bg);
-  border-color: var(--tp-border);
+.preview-content .markdown-preview code {
   color: var(--tp-text);
 }
 
-.export-btn:hover {
-  background: var(--tp-muted);
-  border-color: var(--tp-accent);
-}
-
-.btn-select-all,
-.btn-deselect-all {
-  background: var(--tp-bg);
-  border-color: var(--tp-border);
-  color: var(--tp-text);
-}
-
-.preview-header h1 {
-  color: var(--tp-text);
-}
-
-.preview-meta {
-  color: var(--tp-text-secondary);
+/* PDF 预览容器 */
+.preview-content .pdf-preview-container {
+  background: white;
+  color: black;
 }
