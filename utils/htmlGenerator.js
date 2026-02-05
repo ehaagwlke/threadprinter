@@ -114,7 +114,12 @@ const HtmlGenerator = {
 
     // 内容
     html += `<div class="tweet-content">`;
-    html += this.formatTweetText(tweet.text);
+    if (tweet.html) {
+      // 使用提取的 HTML（保留样式）
+      html += tweet.html;
+    } else {
+      html += this.formatTweetText(tweet.text);
+    }
     html += `</div>`;
 
     // 媒体

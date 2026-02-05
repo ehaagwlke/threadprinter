@@ -54,10 +54,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true });
       });
       return true;
+
+    case 'fetchSyndication':
+      fetchSyndication(request.data).then(data => {
+        sendResponse({ success: true, data });
+      }).catch(err => {
+        sendResponse({ success: false, error: err?.message || String(err) });
+      });
+      return true;
   }
   
   return true;
 });
+
+async function fetchSyndication({ url }) {
+  const resp = await fetch(url, { credentials: 'omit', cache: 'no-store' });
+  if (!resp.ok) throw new Error(`syndication http ${resp.status}`);
+  return await resp.json();
+}
 
 function openPreviewPage(data) {
   chrome.storage.local.set({
@@ -71,18 +85,14 @@ function openPreviewPage(data) {
 
 async function handleDownload(data) {
   const { content, filename, mimeType } = data;
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  
-  try {
-    await chrome.downloads.download({
-      url,
-      filename,
-      saveAs: true
-    });
-  } finally {
-    setTimeout(() => URL.revokeObjectURL(url), 10_000);
-  }
+  const safeType = mimeType || 'application/octet-stream';
+  const url = `data:${safeType};charset=utf-8,${encodeURIComponent(String(content ?? ''))}`;
+
+  await chrome.downloads.download({
+    url,
+    filename,
+    saveAs: true
+  });
 }
 
 async function getSettings() {
@@ -108,10 +118,14 @@ async function exportAsPdf(data) {
     await waitForDocumentReady(tabId);
     const pdfData = await sendCommand(tabId, 'Page.printToPDF', {
       printBackground: true,
-      preferCSSPageSize: true
+      preferCSSPageSize: true,
+      displayHeaderFooter: false,
+      marginTop: 0,
+      marginBottom: 0,
+      marginLeft: 0,
+      marginRight: 0
     });
-    const blob = base64ToBlob(pdfData.data, 'application/pdf');
-    await downloadBlob(blob, `thread-${Date.now()}.pdf`);
+    await downloadBase64(pdfData.data, 'application/pdf', `thread-${Date.now()}.pdf`);
   } finally {
     await safeDetachDebugger(tabId);
     await safeCloseTab(tabId);
@@ -291,16 +305,29 @@ async function base64PngToImageBitmap(base64) {
 }
 
 async function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  try {
-    await chrome.downloads.download({
-      url,
-      filename,
-      saveAs: true
-    });
-  } finally {
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  const mimeType = blob?.type || 'application/octet-stream';
+  const base64 = arrayBufferToBase64(await blob.arrayBuffer());
+  await downloadBase64(base64, mimeType, filename);
+}
+
+async function downloadBase64(base64, mimeType, filename) {
+  const url = `data:${mimeType || 'application/octet-stream'};base64,${base64}`;
+  await chrome.downloads.download({
+    url,
+    filename,
+    saveAs: true
+  });
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
   }
+  return btoa(binary);
 }
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {

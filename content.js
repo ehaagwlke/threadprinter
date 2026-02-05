@@ -79,6 +79,25 @@ class ContentExtractor {
     return document.querySelector('main') || document.body;
   }
 
+  static getConversationStatusIds() {
+    const root = this.getConversationRoot();
+    const anchors = root.querySelectorAll('a[href*="/status/"]');
+    const ids = [];
+    const seen = new Set();
+
+    for (const a of anchors) {
+      const href = a.getAttribute('href') || '';
+      const match = href.match(/\/status\/(\d+)/);
+      if (!match) continue;
+      const id = match[1];
+      if (seen.has(id)) continue;
+      seen.add(id);
+      ids.push(id);
+    }
+
+    return ids;
+  }
+
   static getTweetElementsFromRoot(root) {
     const set = new Set();
 
@@ -141,12 +160,86 @@ class ContentExtractor {
     });
   }
 
+  static findScrollableContainer(startEl) {
+    const docScroll = document.scrollingElement || document.documentElement || document.body;
+    let el = startEl;
+    while (el && el !== document.body && el !== document.documentElement) {
+      const style = window.getComputedStyle(el);
+      const overflowY = style?.overflowY || '';
+      const canScroll = (overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight + 1;
+      if (canScroll) return el;
+      el = el.parentElement;
+    }
+    return docScroll;
+  }
+
+  static clickExpandableButtons(root, { maxClicks = 12 } = {}) {
+    const keywords = [
+      'Show more',
+      'Show',
+      'View',
+      'Read more',
+      '显示更多',
+      '展开',
+      '显示',
+      '查看更多',
+      '查看',
+      '翻译'
+    ];
+
+    const nodes = Array.from(root.querySelectorAll('div[role="button"], button, a[role="button"]'));
+    let clicks = 0;
+    for (const n of nodes) {
+      if (clicks >= maxClicks) break;
+      const text = (n.innerText || n.textContent || '').trim();
+      if (!text) continue;
+      if (!keywords.some(k => text.includes(k))) continue;
+      if (n.getAttribute('aria-disabled') === 'true') continue;
+      try {
+        n.click();
+        clicks += 1;
+      } catch {}
+    }
+    return clicks;
+  }
+
+  static async waitForConversationStable({ timeoutMs = 6000, intervalMs = 200, stableTicks = 3 } = {}) {
+    const start = Date.now();
+    let lastStatusCount = -1;
+    let lastTweetCount = -1;
+    let stable = 0;
+
+    while (Date.now() - start < timeoutMs) {
+      const statusCount = this.getConversationStatusIds().length;
+      const tweetCount = this.getTweetElements().length;
+
+      if (statusCount === lastStatusCount && tweetCount === lastTweetCount) {
+        stable += 1;
+        if (stable >= stableTicks && (statusCount > 0 || tweetCount > 0)) return true;
+      } else {
+        stable = 0;
+        lastStatusCount = statusCount;
+        lastTweetCount = tweetCount;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+    }
+
+    return false;
+  }
+
   static async tryLoadMoreTweets({ maxScrolls = 6, settleMs = 260 } = {}) {
     let lastCount = this.getTweetElements().length;
     let stable = 0;
+    const root = this.getConversationRoot();
+    const scroller = this.findScrollableContainer(root);
 
     for (let i = 0; i < maxScrolls; i++) {
-      window.scrollBy(0, Math.max(300, Math.floor(window.innerHeight * 0.9)));
+      if (scroller && scroller !== document.body && scroller !== document.documentElement) {
+        scroller.scrollTop += Math.max(400, Math.floor(scroller.clientHeight * 0.9));
+      } else {
+        window.scrollBy(0, Math.max(400, Math.floor(window.innerHeight * 0.9)));
+      }
       await new Promise(resolve => setTimeout(resolve, settleMs));
 
       const nextCount = this.getTweetElements().length;
@@ -183,9 +276,13 @@ class ContentExtractor {
   }
 
   static async extractTwitterThreadAsync() {
+    await this.waitForConversationStable({ timeoutMs: 6000 });
+    const root = this.getConversationRoot();
+    this.clickExpandableButtons(root);
     await this.tryLoadMoreTweets();
-    const tweets = this.extractTweets();
-    await this.enrichMainTweetFromSyndication(tweets);
+    let tweets = this.extractTweets();
+    tweets = this.mergeTweetsByConversationOrder(tweets);
+    await this.enrichTweetsFromSyndication(tweets);
     const threadInfo = this.extractThreadInfo();
     
     return {
@@ -210,6 +307,7 @@ class ContentExtractor {
     const tweets = [];
     const tweetElements = this.getTweetElements();
     const currentStatusId = this.getCurrentStatusId();
+    const pageLongform = this.extractLongformTextFromPage();
     
     console.log(`[ThreadPrinter] Found ${tweetElements.length} tweet elements`);
     
@@ -220,17 +318,38 @@ class ContentExtractor {
       }
     });
 
+    if (currentStatusId && pageLongform) {
+      const main = tweets.find(t => t.statusId === currentStatusId);
+      if (main) {
+        const existing = main.text || '';
+        if (pageLongform.length > existing.length + 40) {
+          main.text = pageLongform;
+          main.textPlain = pageLongform;
+          // 同时也更新 HTML
+          const pageLongformHTML = this.extractLongformHTMLFromPage();
+          if (pageLongformHTML) {
+            main.html = pageLongformHTML;
+          }
+        }
+      }
+    }
+
     if (currentStatusId && !tweets.some(t => t.statusId === currentStatusId)) {
       const metaText = this.extractMainTweetTextFromMeta();
-      if (metaText && !this.isBadTweetText(metaText)) {
+      const chosen = pageLongform && pageLongform.length >= (metaText || '').length ? pageLongform : metaText;
+      if (chosen && !this.isBadTweetText(chosen)) {
         const threadInfo = this.extractThreadInfo();
+        // 尝试获取页面级长文 HTML
+        const pageLongformHTML = pageLongform && pageLongform.length >= (metaText || '').length ? 
+          this.extractLongformHTMLFromPage() : '';
+
         tweets.unshift({
           index: 0,
           id: `tweet-${currentStatusId}`,
           statusId: currentStatusId,
-          text: metaText,
-          textPlain: metaText,
-          html: '',
+          text: chosen,
+          textPlain: chosen,
+          html: pageLongformHTML || '',
           author: threadInfo.author,
           authorHandle: threadInfo.authorHandle,
           timestamp: threadInfo.publishedTime,
@@ -262,10 +381,15 @@ class ContentExtractor {
     try {
       // 提取文本内容 - 支持普通推文和长文
       let text = this.extractTweetText(tweetEl);
+      let html = this.extractTweetHTML(tweetEl); // 提取 HTML
       const statusId = this.getTweetStatusId(tweetEl);
 
       if (!text && currentStatusId && statusId && statusId === currentStatusId) {
         text = this.extractMainTweetTextFromMeta() || text;
+        // 如果从 Meta 提取了文本，HTML 暂时为空或尝试构造简单的 HTML
+        if (text && !html) {
+          html = this.escapeHtml(text).replace(/\n/g, '<br>');
+        }
       }
       
       // 提取作者信息
@@ -293,7 +417,7 @@ class ContentExtractor {
         statusId: statusId || '',
         text: text,
         textPlain: text,
-        html: '',
+        html: html || '',
         author: author,
         authorHandle: authorHandle,
         timestamp: timestamp,
@@ -314,6 +438,9 @@ class ContentExtractor {
    */
   static extractTweetText(tweetEl) {
     const candidates = [];
+
+    const longform = this.extractLongformTextFromDataContents(tweetEl);
+    if (longform) return longform;
 
     tweetEl.querySelectorAll('[data-testid="tweetText"]').forEach(el => candidates.push(el));
 
@@ -347,6 +474,77 @@ class ContentExtractor {
     }
   }
 
+  static extractTweetHTML(tweetEl) {
+    let html = '';
+    const longform = this.extractLongformHTMLFromDataContents(tweetEl);
+    if (longform) {
+      html = longform;
+    } else {
+      const textEl = tweetEl.querySelector('[data-testid="tweetText"]');
+      if (textEl) {
+         html = textEl.innerHTML;
+      }
+    }
+    
+    if (html) {
+      return this.processTweetHTML(html);
+    }
+    return '';
+  }
+
+  static processTweetHTML(html) {
+    if (!html) return '';
+    
+    // 1. Fix relative links
+    html = html.replace(/href="\//g, 'href="https://x.com/');
+    
+    // 2. Remove "Show more" type buttons if they ended up in the HTML
+    // (Simple heuristic for now, X usually separates them)
+
+    return html;
+  }
+
+  static extractLongformHTMLFromDataContents(root) {
+    if (!root) return '';
+    const blocks = Array.from(root.querySelectorAll('div[data-contents="true"]'));
+    if (blocks.length === 0) return '';
+
+    // Concatenate all blocks with line breaks
+    // div[data-contents="true"] are usually block containers
+    return blocks.map(b => b.innerHTML).join('<br><br>');
+  }
+
+  static extractLongformTextFromDataContents(root) {
+    if (!root) return '';
+    const blocks = Array.from(root.querySelectorAll('div[data-contents="true"]'));
+    if (blocks.length === 0) return '';
+
+    let best = '';
+    for (const b of blocks) {
+      const raw = (b.innerText || b.textContent || '').trim();
+      const cleaned = this.normalizeTweetText(raw);
+      if (cleaned.length > best.length) best = cleaned;
+    }
+    return best;
+  }
+
+  static extractLongformTextFromPage() {
+    const root = document.querySelector('main') || document.body;
+    return this.extractLongformTextFromDataContents(root);
+  }
+
+  static extractLongformHTMLFromPage() {
+    const root = document.querySelector('main') || document.body;
+    return this.extractLongformHTMLFromDataContents(root);
+  }
+
+  static escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
   static normalizeTweetText(text) {
     if (!text) return '';
     let t = String(text);
@@ -372,6 +570,16 @@ class ContentExtractor {
     }
 
     return t.trim();
+  }
+
+  static isLikelyTruncatedText(text) {
+    if (!text) return false;
+    const t = String(text).trim();
+    if (!t) return false;
+    if (t.endsWith('…') || t.endsWith('...')) return true;
+    if (t.includes('…')) return true;
+    if (/\bhttps?:\/\/t\.co\/\w+/i.test(t) && t.length < 140) return true;
+    return false;
   }
 
   static extractMainTweetTextFromMeta() {
@@ -412,6 +620,81 @@ class ContentExtractor {
     return patterns.some(p => t.includes(p));
   }
 
+  static mergeTweetsByConversationOrder(tweets) {
+    const orderedIds = this.getConversationStatusIds();
+    if (!orderedIds.length) return tweets;
+
+    const byId = new Map();
+    for (const t of tweets) {
+      if (t?.statusId) byId.set(t.statusId, t);
+    }
+
+    const merged = [];
+    for (const id of orderedIds) {
+      const existing = byId.get(id);
+      if (existing) {
+        merged.push(existing);
+      } else {
+        merged.push({
+          index: merged.length,
+          id: `tweet-${id}`,
+          statusId: id,
+          text: '',
+          textPlain: '',
+          html: '',
+          author: '',
+          authorHandle: '',
+          timestamp: '',
+          displayTime: '',
+          media: { images: [], videos: [] },
+          engagement: { replies: 0, retweets: 0, likes: 0, views: 0 },
+          links: [],
+          selected: true
+        });
+      }
+    }
+
+    const seen = new Set(orderedIds);
+    for (const t of tweets) {
+      if (t?.statusId && seen.has(t.statusId)) continue;
+      merged.push(t);
+    }
+
+    merged.forEach((t, i) => { t.index = i; });
+    return merged;
+  }
+
+  static normalizeMediaUrl(url) {
+    if (!url) return '';
+    try {
+      const u = new URL(url);
+      if (u.hostname.endsWith('twimg.com')) {
+        const format = u.searchParams.get('format');
+        const name = u.searchParams.get('name');
+        u.searchParams = new URLSearchParams();
+        if (format) u.searchParams.set('format', format);
+        if (name) u.searchParams.set('name', name);
+        return u.toString();
+      }
+      return u.toString();
+    } catch {
+      return String(url);
+    }
+  }
+
+  static dedupeImages(images) {
+    const out = [];
+    const seen = new Set();
+    for (const img of images || []) {
+      const url = typeof img === 'string' ? img : img.url;
+      const key = this.normalizeMediaUrl(url);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(typeof img === 'string' ? { url: img, alt: '', width: 0, height: 0 } : img);
+    }
+    return out;
+  }
+
   static computeSyndicationToken(tweetId) {
     const n = Number(tweetId);
     if (!Number.isFinite(n) || n <= 0) return '';
@@ -445,44 +728,102 @@ class ContentExtractor {
     return '';
   }
 
-  static async enrichMainTweetFromSyndication(tweets) {
-    const statusId = this.getCurrentStatusId();
-    if (!statusId) return;
-
-    const idx = tweets.findIndex(t => t.statusId === statusId);
-    const existing = idx >= 0 ? tweets[idx] : null;
-    const currentText = existing?.text || '';
-    if (existing && !this.isBadTweetText(currentText)) return;
-
-    try {
-      const fetchedText = await this.fetchTweetTextViaSyndication(statusId, 'zh');
-      if (!fetchedText) return;
-
-      if (existing) {
-        existing.text = fetchedText;
-        existing.textPlain = fetchedText;
-        return;
+  static parseSyndicationMedia(data) {
+    const images = [];
+    const videos = [];
+    const mediaDetails = data?.mediaDetails || data?.media_details || data?.tweet?.mediaDetails || data?.tweet?.media_details || [];
+    for (const m of mediaDetails || []) {
+      const type = (m?.type || '').toLowerCase();
+      if (type === 'photo' || type === 'image') {
+        const url = m?.media_url_https || m?.media_url || m?.url;
+        if (url) images.push({ url, alt: m?.ext_alt_text || '', width: 0, height: 0 });
+      } else if (type === 'video' || type === 'animated_gif' || type === 'gif') {
+        const poster = m?.media_url_https || m?.media_url || m?.poster || '';
+        const videoInfo = m?.video_info || m?.videoInfo;
+        const variants = videoInfo?.variants || [];
+        const mp4 = variants
+          .filter(v => (v?.content_type || '').includes('mp4') && v?.url)
+          .sort((a, b) => (b?.bitrate || 0) - (a?.bitrate || 0))[0];
+        videos.push({ url: mp4?.url || m?.url || '', poster });
       }
+    }
+    return { images: this.dedupeImages(images), videos };
+  }
 
-      const threadInfo = this.extractThreadInfo();
-      tweets.unshift({
-        index: 0,
-        id: `tweet-${statusId}`,
-        statusId,
-        text: fetchedText,
-        textPlain: fetchedText,
-        html: '',
-        author: threadInfo.author,
-        authorHandle: threadInfo.authorHandle,
-        timestamp: threadInfo.publishedTime,
-        displayTime: '',
-        media: { images: [], videos: [] },
-        engagement: { replies: 0, retweets: 0, likes: 0, views: 0 },
-        links: [],
-        selected: true
+  static async fetchTweetViaSyndication(tweetId, lang = 'zh') {
+    const token = this.computeSyndicationToken(tweetId);
+    const qs = new URLSearchParams({ id: tweetId });
+    if (lang) qs.set('lang', lang);
+    if (token) qs.set('token', token);
+    const url = `https://cdn.syndication.twimg.com/tweet-result?${qs.toString()}`;
+
+    // Delegate to background script to avoid CORS issues
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ 
+        action: 'fetchSyndication', 
+        data: { url } 
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          return reject(new Error(chrome.runtime.lastError.message));
+        }
+        if (!response || !response.success) {
+          return reject(new Error(response?.error || 'Unknown syndication error'));
+        }
+        resolve(response.data);
       });
-    } catch (error) {
-      console.warn('[ThreadPrinter] Syndication fetch failed:', error);
+    });
+  }
+
+  static async enrichTweetsFromSyndication(tweets) {
+    const ids = [];
+    for (const t of tweets) {
+      const id = t?.statusId;
+      if (id && /^\d+$/.test(id)) ids.push(id);
+    }
+
+    const max = 12;
+    const slice = ids.slice(0, max);
+    for (const id of slice) {
+      const t = tweets.find(x => x?.statusId === id);
+      if (!t) continue;
+
+      const needsText = !t.text || this.isBadTweetText(t.text) || this.isLikelyTruncatedText(t.text);
+      const needsMedia = !t.media || (t.media.images?.length || 0) === 0 && (t.media.videos?.length || 0) === 0;
+      if (!needsText && !needsMedia) continue;
+
+      try {
+        const data = await this.fetchTweetViaSyndication(id, 'zh');
+
+        if (needsText) {
+          const candidates = [
+            data?.text,
+            data?.full_text,
+            data?.tweet?.text,
+            data?.tweet?.full_text
+          ].filter(Boolean);
+          for (const c of candidates) {
+            const normalized = this.normalizeTweetText(c);
+            if (normalized && !this.isBadTweetText(normalized)) {
+              t.text = normalized;
+              t.textPlain = normalized;
+              break;
+            }
+          }
+        }
+
+        if (needsMedia) {
+          const parsed = this.parseSyndicationMedia(data);
+          const images = this.dedupeImages([...(t.media?.images || []), ...(parsed.images || [])]);
+          const videos = [...(t.media?.videos || []), ...(parsed.videos || [])];
+          t.media = { ...(t.media || { images: [], videos: [] }), images, videos };
+        }
+      } catch (error) {
+        console.warn('[ThreadPrinter] Syndication fetch failed:', error);
+      }
+    }
+
+    for (const t of tweets) {
+      if (t?.media?.images) t.media.images = this.dedupeImages(t.media.images);
     }
   }
   

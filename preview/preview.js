@@ -264,7 +264,10 @@ function renderTweetHTML(tweet, index) {
   html += '</div>';
   
   // 推文文本
-  if (tweet.text) {
+  if (tweet.html) {
+    // 使用提取的 HTML（保留样式）
+    html += `<div class="tweet-text">${tweet.html}</div>`;
+  } else if (tweet.text) {
     const formattedText = formatTweetText(tweet.text);
     html += `<div class="tweet-text">${formattedText}</div>`;
   }
@@ -445,7 +448,13 @@ async function handleExport() {
 async function exportViaBackground(action, data) {
   try {
     const response = await new Promise(resolve => {
-      chrome.runtime.sendMessage({ action, data }, resolve);
+      chrome.runtime.sendMessage({ action, data }, (resp) => {
+        if (chrome.runtime.lastError) {
+          resolve({ success: false, error: chrome.runtime.lastError.message });
+          return;
+        }
+        resolve(resp);
+      });
     });
 
     if (!response?.success) {
